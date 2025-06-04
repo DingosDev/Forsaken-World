@@ -1,0 +1,248 @@
+[gd_scene load_steps=10 format=3 uid="uid://d1gm8052bxkv8"]
+
+[ext_resource type="Texture2D" uid="uid://cnukqna5lmc2v" path="res://sprites/spr_weapons.png" id="1"]
+
+[sub_resource type="GDScript" id="1"]
+script/source = "extends Node2D
+
+var player
+
+var time = 0.0
+
+@onready var sprite = $Sprite
+@onready var anim = $AnimationPlayer
+@onready var hitbox = $hitbox
+
+var currentWeapon = {}
+
+func _ready():
+	$Sprite.rotation_degrees = 90
+	
+	Game.WeaponChanged.connect(
+		func():
+			$Sprite.frame = Game.weaponsData[Game.weapon][Game.weaponLevel][\"texture_index\"]
+			Game.WeaponUpgraded.emit()
+	)
+	Game.WeaponUpgraded.connect(
+		func():
+			$Sprite.frame = Game.weaponsData[Game.weapon][Game.weaponLevel][\"texture_index\"]
+			currentWeapon = Game.weaponsData[Game.weapon][Game.weaponLevel]
+	)
+	
+	Game.WeaponChanged.emit()
+	
+"
+
+[sub_resource type="RectangleShape2D" id="2"]
+size = Vector2(23, 4)
+
+[sub_resource type="Animation" id="6"]
+length = 0.25
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(7, -15)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("hitbox:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(10, -11)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("hitbox:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [-0.565487]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Sprite:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [-0.565487]
+}
+
+[sub_resource type="Animation" id="7"]
+resource_name = "attack"
+length = 0.26
+step = 0.01
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.09, 0.2, 0.26),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(6.15385, -13.6923), Vector2(10, -11), Vector2(0, 0), Vector2(-9, -6)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("hitbox:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.09, 0.2, 0.26),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(6.15385, -13.6923), Vector2(10, -11), Vector2(0, 0), Vector2(-9, -6)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("hitbox:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.26),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [-0.565487, 1.5708, 2.10138]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Sprite:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.26),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [-0.565487, 1.5708, 2.10138]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_8pvgc"]
+_data = {
+&"RESET": SubResource("6"),
+&"attack": SubResource("7")
+}
+
+[sub_resource type="GDScript" id="3"]
+script/source = "extends StateMachine
+"
+
+[sub_resource type="GDScript" id="4"]
+script/source = "extends State
+
+var time = 0.0
+
+func step(d):
+	time += d
+	host.scale.x = host.player.direction
+	host.position = lerp(host.position, host.player.position+Vector2(16*sign(-host.player.sprite.scale.x), -16+sin(time)*2), .15)
+	
+	host.sprite.rotation_degrees = lerp(host.sprite.rotation_degrees, 90.0, .1)
+	host.sprite.position = lerp(host.sprite.position, Vector2.ZERO, .1)
+	
+	host.hitbox.rotation_degrees = lerp(host.sprite.rotation_degrees, 90.0, .1)
+	host.hitbox.position = lerp(host.sprite.position, Vector2.ZERO, .1)
+
+func conditions():
+	if host.player.state_machine.state == \"attack\": return [\"attack\"]
+"
+
+[sub_resource type="GDScript" id="5"]
+script/source = "extends State
+
+var attacked_enemies = []
+
+func enter(_p=[]): host.anim.play(\"attack\")
+
+func step(_d):
+	host.position = host.player.position
+	
+	var piercy = Game.piercing
+	var enemies = host.hitbox.get_overlapping_bodies()
+	
+	for i in enemies:
+		if !attacked_enemies.is_empty() && !piercy: break
+		
+		if i in attacked_enemies || i.state_machine.state in [\"spawn\", \"hit\", \"dead\"] || i.invincible: continue
+		
+		var dmg = host.currentWeapon[\"base_atk\"] * Game.atk
+		var dmg_type = \"normal\"
+		
+		if randf() <= Game.crit_rate: dmg_type = \"crit\"
+		
+		if Game.weapon == \"sword\" && Game.weaponLevel == 2: dmg *= 2
+		
+		if !i in attacked_enemies:
+			i.state_machine.change_state(
+				\"hit\",
+				[dmg, dmg_type]
+			)
+			attacked_enemies.append(i)
+
+func conditions():
+	if host.player.state_machine.state != \"attack\": return [\"idle\"]
+
+func exit():
+	attacked_enemies.clear()
+"
+
+[node name="obj_weapon" type="Node2D"]
+script = SubResource("1")
+
+[node name="Sprite" type="Sprite2D" parent="."]
+position = Vector2(7, -15)
+rotation = -0.565487
+scale = Vector2(0.7, 0.7)
+texture = ExtResource("1")
+centered = false
+offset = Vector2(0, -16)
+hframes = 6
+vframes = 5
+
+[node name="hitbox" type="Area2D" parent="."]
+position = Vector2(10, -11)
+rotation = -0.565487
+collision_layer = 0
+collision_mask = 4
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="hitbox"]
+position = Vector2(11.5, 0)
+shape = SubResource("2")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_8pvgc")
+}
+
+[node name="States" type="Node" parent="."]
+script = SubResource("3")
+
+[node name="idle" type="Node" parent="States"]
+script = SubResource("4")
+
+[node name="attack" type="Node" parent="States"]
+script = SubResource("5")

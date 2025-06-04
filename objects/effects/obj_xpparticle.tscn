@@ -1,0 +1,63 @@
+[gd_scene load_steps=3 format=3 uid="uid://bvl7rr16gy174"]
+
+[ext_resource type="Texture2D" uid="uid://buqcikfdriuyo" path="res://sprites/effects/fx_xpparticle.png" id="1"]
+
+[sub_resource type="GDScript" id="1"]
+script/source = "extends Sprite2D
+
+var amount = 1
+
+var t = 0.0
+var multi_xp_avoider:bool
+var anim_state = 0
+
+var previous_position = Vector2.ZERO
+var initial_position:Vector2
+
+func _ready() -> void:
+	initial_position = position
+	
+	if Game.smart: amount *= 1.5
+
+func _process(_delta: float) -> void:
+	var formula_result:Vector2 = position
+	
+	match anim_state:
+		0:
+			formula_result = Vector2(position.x, position.y + ((initial_position.y-20) - position.y) * (1 - pow(1-t, 3)))
+			
+			t = min(t+.02, 1.0)
+			
+			if t == 1.0:
+				t = .0
+				anim_state = 1
+		
+		1:
+			var target_position = get_viewport().get_camera_2d().topLeft_position + Vector2(27, 64)
+			
+			formula_result = position + (target_position - position) * (pow(t, 3))
+			
+			t = min(t+.05, 1.0)
+			
+			if t == 1.0:
+				t = .0
+				anim_state = 2
+		
+		2:
+			if !multi_xp_avoider:
+				multi_xp_avoider = true
+				Game.xp += amount
+				queue_free()
+	
+	previous_position = position
+	position = formula_result
+	
+	queue_redraw()
+
+func _draw() -> void:
+	draw_line(Vector2.ZERO, (previous_position-position)*2, Color.WHITE, 1.0)
+"
+
+[node name="obj_xpparticle" type="Sprite2D"]
+texture = ExtResource("1")
+script = SubResource("1")

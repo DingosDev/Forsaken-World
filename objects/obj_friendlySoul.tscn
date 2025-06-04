@@ -1,0 +1,183 @@
+[gd_scene load_steps=15 format=3 uid="uid://dy7hx3wb47j83"]
+
+[ext_resource type="Texture2D" uid="uid://dik5o0i2ke6o7" path="res://sprites/spr_friendlySoul.png" id="1_0mfko"]
+[ext_resource type="Texture2D" uid="uid://0txq2lvtgdqq" path="res://sprites/effects/fx_prayinglight.png" id="2_l26fs"]
+
+[sub_resource type="GDScript" id="GDScript_bend1"]
+script/source = "extends Node2D
+
+@onready var anim = $AnimationTree
+@onready var playback =  anim.get(\"parameters/playback\")
+
+func _ready() -> void:
+	modulate.a = 0
+"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_4dsd4"]
+animation = &"idle"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_uuhru"]
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_qqwo3"]
+states/idle/node = SubResource("AnimationNodeAnimation_4dsd4")
+states/idle/position = Vector2(352, 100)
+transitions = ["Start", "idle", SubResource("AnimationNodeStateMachineTransition_uuhru")]
+
+[sub_resource type="Animation" id="Animation_vh4s0"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [1]
+}
+
+[sub_resource type="Animation" id="Animation_1g1qw"]
+resource_name = "idle"
+loop_mode = 1
+step = 0.05
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.45, 0.6, 0.75, 0.9),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3, 4, 5, 6, 7]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_a2t8r"]
+_data = {
+&"RESET": SubResource("Animation_vh4s0"),
+&"idle": SubResource("Animation_1g1qw")
+}
+
+[sub_resource type="GDScript" id="GDScript_fyx8e"]
+script/source = "extends StateMachine
+"
+
+[sub_resource type="GDScript" id="GDScript_n8i8c"]
+script/source = "extends State
+
+var tw
+
+func enter(_p=[]):
+	tw = create_tween()
+	
+	tw.set_parallel()
+	tw.tween_property(host, \"modulate:a\", 1.0, 1.0)
+	tw.tween_property(host, \"position:y\", host.position.y-10, 1.0).set_trans(tw.TRANS_CUBIC)
+	tw.set_parallel(false)
+	tw.tween_interval(1.0)
+	tw.play()
+
+func conditions():
+	if tw && !tw.is_running(): return [\"idle\"]
+"
+
+[sub_resource type="GDScript" id="GDScript_sfki1"]
+script/source = "extends State
+
+var camera_rect = Rect2()
+var target_position = Vector2()
+
+func enter(_p=[]):
+	camera_rect = Rect2(
+		get_viewport().get_camera_2d().topLeft_position,
+		Vector2(320, 180)
+	)
+	
+	target_position.x = randf_range(camera_rect.position.x, camera_rect.end.x)
+	target_position.y = randf_range(camera_rect.position.y, camera_rect.end.y)
+
+func step(d):
+	host.position = host.position.move_toward(target_position, 200*d)
+
+func conditions():
+	if host.position.distance_to(target_position) < 1: return [\"attack\"]
+"
+
+[sub_resource type="GDScript" id="GDScript_8mp2x"]
+script/source = "extends State
+
+var timer:float
+var shot_delay = 20
+var shot_obj = preload(\"res://objects/projectiles/obj_soulProjectile.tscn\")
+
+func enter(_p=[]):
+	timer = 1 + randf() * 5
+	
+	await get_tree().create_timer(timer).timeout
+	
+	state_machine.change_state(\"idle\")
+
+func step(d):
+	shot_delay -= 60*d
+	if shot_delay <= 0:
+		var shot_inst = shot_obj.instantiate()
+		var nearest_enemy = null
+		
+		for i in get_tree().current_scene.get_node(\"enemies\").get_children():
+			if (!nearest_enemy || host.position.distance_to(i.position) < host.position.distance_to(nearest_enemy.position)) && !i.state_machine.state in [\"spawn\", \"hit\", \"dead\"]:
+				nearest_enemy= i
+		
+		if nearest_enemy:
+			shot_inst.target_pos = nearest_enemy.position + Vector2(nearest_enemy.velocity.x*.2, -8)
+			shot_inst.position = host.position
+			
+			get_tree().current_scene.add_child(shot_inst)
+			
+		shot_delay = 20
+"
+
+[sub_resource type="GDScript" id="GDScript_mtdwi"]
+script/source = "extends State
+"
+
+[node name="obj_friendlySoul" type="Node2D"]
+script = SubResource("GDScript_bend1")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_0mfko")
+hframes = 9
+frame = 3
+
+[node name="PointLight2D" type="PointLight2D" parent="."]
+blend_mode = 2
+texture = ExtResource("2_l26fs")
+texture_scale = 0.8
+
+[node name="AnimationTree" type="AnimationTree" parent="."]
+tree_root = SubResource("AnimationNodeStateMachine_qqwo3")
+anim_player = NodePath("AnimationPlayer")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="AnimationTree"]
+root_node = NodePath("../..")
+libraries = {
+"": SubResource("AnimationLibrary_a2t8r")
+}
+
+[node name="states" type="Node" parent="."]
+script = SubResource("GDScript_fyx8e")
+
+[node name="spawn" type="Node" parent="states"]
+script = SubResource("GDScript_n8i8c")
+
+[node name="idle" type="Node" parent="states"]
+script = SubResource("GDScript_sfki1")
+
+[node name="attack" type="Node" parent="states"]
+script = SubResource("GDScript_8mp2x")
+
+[node name="dead" type="Node" parent="states"]
+script = SubResource("GDScript_mtdwi")

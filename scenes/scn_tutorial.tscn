@@ -1,0 +1,284 @@
+[gd_scene load_steps=6 format=3 uid="uid://bl5hqkjhu7bkq"]
+
+[ext_resource type="Texture2D" uid="uid://vc0xh4pfj65l" path="res://sprites/spr_tutorialKeyboard.png" id="1_f3m3p"]
+[ext_resource type="Theme" uid="uid://dj5eks0qvkdms" path="res://fonts/thm_default.tres" id="2_nxedg"]
+[ext_resource type="Texture2D" uid="uid://8p23ej1j5w8n" path="res://sprites/spr_tutorialController.png" id="3_xqh23"]
+
+[sub_resource type="GDScript" id="GDScript_m7dw2"]
+script/source = "extends Control
+
+func _ready() -> void:
+	get_window().content_scale_size = DisplayServer.window_get_size()
+	
+	if Input.get_connected_joypads().is_empty(): $Keyboard.visible = true
+	else: $Controller.visible = true
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_released(\"ui_accept\"):
+		Game.change_scene(\"res://scenes/maps/map_forgottenTown.tscn\")
+"
+
+[sub_resource type="GDScript" id="GDScript_34aud"]
+script/source = "extends RichTextLabel
+
+func _ready() -> void:
+	await get_parent().ready
+	
+	position = DisplayServer.window_get_size()-Vector2i(size.x, size.y)
+
+func _on_timer_timeout() -> void:
+	visible = !visible
+"
+
+[node name="scn_tutorial" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = SubResource("GDScript_m7dw2")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 960.0
+offset_bottom = 540.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0509804, 0.168627, 0.270588, 1)
+
+[node name="Keyboard" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 960.0
+offset_bottom = 540.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="Keyboard"]
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+texture = ExtResource("1_f3m3p")
+expand_mode = 1
+
+[node name="direita" type="RichTextLabel" parent="Keyboard"]
+layout_mode = 1
+offset_left = 134.0
+offset_top = 540.0
+offset_right = 232.0
+offset_bottom = 636.0
+theme = ExtResource("2_nxedg")
+theme_override_font_sizes/normal_font_size = 32
+bbcode_enabled = true
+text = "[center]Andar para Direita
+"
+fit_content = true
+scroll_active = false
+
+[node name="esquerda" type="RichTextLabel" parent="Keyboard"]
+layout_mode = 1
+offset_left = 405.0
+offset_top = 540.0
+offset_right = 539.0
+offset_bottom = 636.0
+theme = ExtResource("2_nxedg")
+theme_override_font_sizes/normal_font_size = 32
+bbcode_enabled = true
+text = "[center]Andar para Esquerda"
+fit_content = true
+scroll_active = false
+
+[node name="agachar" type="RichTextLabel" parent="Keyboard"]
+layout_mode = 1
+offset_left = 265.0
+offset_top = 540.0
+offset_right = 399.0
+offset_bottom = 572.0
+theme = ExtResource("2_nxedg")
+theme_override_font_sizes/normal_font_size = 32
+bbcode_enabled = true
+text = "[center]Agachar"
+fit_content = true
+scroll_active = false
+
+[node name="pular" type="RichTextLabel" parent="Keyboard"]
+layout_mode = 1
+offset_left = 283.0
+offset_top = 226.0
+offset_right = 377.0
+offset_bottom = 258.0
+theme = ExtResource("2_nxedg")
+theme_override_font_sizes/normal_font_size = 32
+bbcode_enabled = true
+text = "[center]Pular"
+fit_content = true
+scroll_active = false
+
+[node name="atacar" type="RichTextLabel" parent="Keyboard"]
+layout_mode = 0
+offset_left = 708.0
+offset_top = 540.0
+offset_right = 959.0
+offset_bottom = 604.0
+theme = ExtResource("2_nxedg")
+theme_override_font_sizes/normal_font_size = 32
+bbcode_enabled = true
+text = "[center]Atacar / Selecionar"
+fit_content = true
+scroll_active = false
+
+[node name="rezar" type="RichTextLabel" parent="Keyboard"]
+layout_mode = 1
+offset_left = 1033.0
+offset_top = 540.0
+offset_right = 1119.0
+offset_bottom = 572.0
+theme = ExtResource("2_nxedg")
+theme_override_font_sizes/normal_font_size = 32
+bbcode_enabled = true
+text = "[center]Rezar
+"
+fit_content = true
+scroll_active = false
+
+[node name="Controller" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 960.0
+offset_bottom = 540.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="Controller"]
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+texture = ExtResource("3_xqh23")
+expand_mode = 1
+
+[node name="direita" type="RichTextLabel" parent="Controller"]
+layout_mode = 1
+offset_left = 232.0
+offset_top = 406.0
+offset_right = 330.0
+offset_bottom = 502.0
+theme = ExtResource("2_nxedg")
+theme_override_font_sizes/normal_font_size = 32
+bbcode_enabled = true
+text = "[center]Andar para Direita
+"
+fit_content = true
+scroll_active = false
+
+[node name="esquerda" type="RichTextLabel" parent="Controller"]
+layout_mode = 1
+offset_left = 54.0
+offset_top = 406.0
+offset_right = 188.0
+offset_bottom = 502.0
+theme = ExtResource("2_nxedg")
+theme_override_font_sizes/normal_font_size = 32
+bbcode_enabled = true
+text = "[center]Andar para Esquerda"
+fit_content = true
+scroll_active = false
+
+[node name="pular" type="RichTextLabel" parent="Controller"]
+layout_mode = 1
+offset_left = 845.0
+offset_top = 636.0
+offset_right = 939.0
+offset_bottom = 668.0
+theme = ExtResource("2_nxedg")
+theme_override_font_sizes/normal_font_size = 32
+bbcode_enabled = true
+text = "[center]Pular"
+fit_content = true
+scroll_active = false
+
+[node name="atacar" type="RichTextLabel" parent="Controller"]
+layout_mode = 0
+offset_left = 652.0
+offset_top = 323.0
+offset_right = 903.0
+offset_bottom = 387.0
+theme = ExtResource("2_nxedg")
+theme_override_font_sizes/normal_font_size = 32
+bbcode_enabled = true
+text = "[center]Atacar / Selecionar"
+fit_content = true
+scroll_active = false
+
+[node name="atacar2" type="RichTextLabel" parent="Controller"]
+layout_mode = 0
+offset_left = 903.0
+offset_top = 323.0
+offset_right = 1154.0
+offset_bottom = 387.0
+theme = ExtResource("2_nxedg")
+theme_override_font_sizes/normal_font_size = 32
+bbcode_enabled = true
+text = "[center]Atacar / Selecionar"
+fit_content = true
+scroll_active = false
+
+[node name="rezar" type="RichTextLabel" parent="Controller"]
+layout_mode = 1
+offset_left = 976.0
+offset_top = 135.0
+offset_right = 1062.0
+offset_bottom = 167.0
+theme = ExtResource("2_nxedg")
+theme_override_font_sizes/normal_font_size = 32
+bbcode_enabled = true
+text = "[center]Rezar
+"
+fit_content = true
+scroll_active = false
+
+[node name="tutorial" type="RichTextLabel" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -160.0
+offset_top = 28.0
+offset_right = 618.0
+offset_bottom = 135.0
+grow_horizontal = 2
+theme = ExtResource("2_nxedg")
+theme_override_font_sizes/normal_font_size = 32
+text = "Ao rezar, você recupera sua \"Mana\", na qual pose der usada como proteção contra inimigos e algumas bençãos."
+
+[node name="pressSel" type="RichTextLabel" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -79.0
+offset_top = 675.0
+offset_right = 426.0
+offset_bottom = 715.0
+grow_horizontal = 2
+theme = ExtResource("2_nxedg")
+theme_override_font_sizes/normal_font_size = 32
+text = "Pressione \"Selecionar\" para continuar"
+fit_content = true
+scroll_active = false
+script = SubResource("GDScript_34aud")
+
+[node name="Timer" type="Timer" parent="pressSel"]
+wait_time = 0.5
+autostart = true
+
+[connection signal="timeout" from="pressSel/Timer" to="pressSel" method="_on_timer_timeout"]

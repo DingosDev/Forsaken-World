@@ -1,0 +1,111 @@
+[gd_scene load_steps=9 format=3 uid="uid://ceps57fp4y1s2"]
+
+[ext_resource type="Texture2D" uid="uid://di133bt2y7arn" path="res://sprites/bars/spr_healthbarbg.png" id="1"]
+[ext_resource type="Texture2D" uid="uid://c87k4ln1oon6j" path="res://sprites/bars/spr_healthbar.png" id="2"]
+[ext_resource type="Texture2D" uid="uid://bdxj5ifj4b7ct" path="res://sprites/bars/spr_shieldbar.png" id="3"]
+[ext_resource type="Texture2D" uid="uid://b8uywqafybm58" path="res://sprites/bars/spr_xpbar.png" id="4"]
+[ext_resource type="Texture2D" uid="uid://y2nqtttbhwqa" path="res://sprites/bars/spr_xpbarbg.png" id="5"]
+[ext_resource type="Texture2D" uid="uid://balq7goai57mr" path="res://sprites/bars/spr_levelup.png" id="6"]
+
+[sub_resource type="GDScript" id="1"]
+resource_name = "Health Bar"
+script/source = "extends TextureProgressBar
+
+@onready var shield = $shieldbar
+
+func _process(_d):
+	max_value = Game.mhp * 100
+	value = Game.hp * 100
+	
+	shield.max_value = Game.mhp * 100
+	shield.value = Game.mana * 100
+"
+
+[sub_resource type="GDScript" id="2"]
+script/source = "extends TextureProgressBar
+
+var levelup_show = 0
+var anim_scale = 100
+
+var tw:Tween = null
+
+func _ready() -> void:
+	Game.XPChanged.connect(update)
+	max_value = 1*anim_scale
+	value = 0
+	update()
+
+func update():
+	if Game.xp == 0: return
+	
+	if tw && tw.is_valid() && tw.is_running():
+		await tw.finished
+		tw.kill()
+	
+	tw = create_tween()
+	
+	tw.tween_property(self, \"value\", Game.xp*anim_scale, .4)
+	tw.play()
+	
+	await  tw.finished
+	
+	if value == max_value: leveledUp()
+
+func leveledUp():
+	max_value = 1*pow(Game.level, 2.0)*anim_scale
+	value = 0
+	
+	$levelupTextTime.start()
+	levelup_show = 1
+	queue_redraw()
+	await $levelupTextTime.timeout
+	levelup_show = 0
+	queue_redraw()
+
+func _draw() -> void:
+	draw_texture(preload(\"res://sprites/bars/spr_levelup.png\"), Vector2(10, 10), Color(Color.WHITE, levelup_show))
+"
+
+[node name="obj_hud" type="CanvasLayer"]
+
+[node name="healthbar" type="TextureProgressBar" parent="."]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 26.0
+offset_bottom = 102.0
+fill_mode = 3
+stretch_margin_left = 5
+stretch_margin_top = 5
+stretch_margin_right = 5
+stretch_margin_bottom = 5
+texture_under = ExtResource("1")
+texture_progress = ExtResource("2")
+script = SubResource("1")
+
+[node name="shieldbar" type="TextureProgressBar" parent="healthbar"]
+layout_mode = 1
+offset_right = 18.0
+offset_bottom = 94.0
+fill_mode = 3
+stretch_margin_left = 5
+stretch_margin_top = 5
+stretch_margin_right = 5
+stretch_margin_bottom = 5
+texture_progress = ExtResource("3")
+
+[node name="xpbar" type="TextureProgressBar" parent="."]
+offset_left = 26.0
+offset_top = 30.0
+offset_right = 34.0
+offset_bottom = 91.0
+fill_mode = 3
+texture_under = ExtResource("5")
+texture_progress = ExtResource("4")
+script = SubResource("2")
+
+[node name="levelup" type="TextureRect" parent="xpbar"]
+visible = false
+layout_mode = 0
+texture = ExtResource("6")
+
+[node name="levelupTextTime" type="Timer" parent="xpbar"]

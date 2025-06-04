@@ -1,0 +1,51 @@
+[gd_scene load_steps=4 format=3 uid="uid://jj6e0cm106ub"]
+
+[ext_resource type="Texture2D" uid="uid://0txq2lvtgdqq" path="res://sprites/effects/fx_prayinglight.png" id="1_5c8kl"]
+
+[sub_resource type="GDScript" id="GDScript_hr56s"]
+script/source = "extends Area2D
+
+var target_pos = Vector2()
+var direction = Vector2()
+
+func _ready() -> void:
+	look_at(target_pos)
+	direction = position.direction_to(target_pos)
+
+func _process(delta: float) -> void:
+	position += direction * 600 * delta
+	
+	for i in get_overlapping_bodies():
+		if i.state_machine.state in [\"spawn\", \"hit\", \"dead\"] || i.invincible: continue
+		
+		var dmg = Game.weaponsData[Game.weapon][Game.weaponLevel][\"base_atk\"] * Game.atk
+		
+		i.state_machine.change_state(\"hit\", [dmg, \"magic\"])
+		
+		queue_free()
+		break
+	
+	if !get_tree().current_scene.room_size.has_point(position): queue_free()
+"
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_g0xb6"]
+size = Vector2(16, 2)
+
+[node name="obj_soulShot" type="Area2D"]
+collision_layer = 0
+collision_mask = 4
+monitorable = false
+script = SubResource("GDScript_hr56s")
+
+[node name="Line2D" type="Line2D" parent="."]
+points = PackedVector2Array(-8, 0, 8, 0)
+width = 2.0
+default_color = Color(0.560784, 0.827451, 1, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_g0xb6")
+
+[node name="PointLight2D" type="PointLight2D" parent="."]
+blend_mode = 2
+texture = ExtResource("1_5c8kl")
+texture_scale = 0.8

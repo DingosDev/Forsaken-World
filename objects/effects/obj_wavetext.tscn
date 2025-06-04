@@ -1,0 +1,39 @@
+[gd_scene load_steps=3 format=3 uid="uid://dcxl6rtvg35yq"]
+
+[ext_resource type="FontFile" uid="uid://doke5f8c8y26q" path="res://fonts/KiwiSoda.ttf" id="1"]
+
+[sub_resource type="GDScript" id="1"]
+resource_name = "WaveText"
+script/source = "extends RichTextLabel
+
+@onready var font:Font = get(\"theme_override_fonts/normal_font\")
+@onready var tw:Tween = get_tree().create_tween()
+
+func _ready():
+	size.x = font.get_string_size(text).x+16
+	position.x = -size.x
+	
+	tw.tween_property(self, \"position:x\", 160-size.x/2, 1.0).set_trans(Tween.TRANS_BACK)
+	tw.tween_property(self, \"position:x\", 320+size.x/2, .5).set_delay(1.0).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(func(): queue_free())
+	tw.play()
+"
+
+[node name="obj_waveText" type="RichTextLabel"]
+z_index = 1423
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -59.0
+offset_right = 59.0
+offset_bottom = 16.0
+grow_horizontal = 2
+size_flags_horizontal = 3
+theme_override_fonts/normal_font = ExtResource("1")
+bbcode_enabled = true
+text = "[center]Wave 1"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+meta_underlined = false
+script = SubResource("1")

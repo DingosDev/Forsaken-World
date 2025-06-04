@@ -1,0 +1,693 @@
+[gd_scene load_steps=55 format=3 uid="uid://bxi7uh4ackyhu"]
+
+[ext_resource type="Texture2D" uid="uid://cnwy8gti1wd3s" path="res://sprites/enemies/spr_espinhudo.png" id="1"]
+[ext_resource type="Texture2D" uid="uid://v5wth00s0xms" path="res://icon.svg" id="2_iqlmj"]
+
+[sub_resource type="GDScript" id="2"]
+resource_name = "Espinhudo Data"
+script/source = "extends CharacterBody2D
+
+@onready var difficulty_factor := pow(Game.wave, 2)
+
+@export var walk_spd:int = 25
+@export var run_spd:int = 100
+@export var scale_factor:float = 1.0
+var spd := 0.0
+
+@export var jump_height := 32
+var jump_velocity := -sqrt(2 * Game.GRAVITY * jump_height)
+
+@export var sight_distance:float = 128
+
+@export var max_hp := 3.0
+@export var atk := 1.0
+
+var hp := .0
+
+var invincible:bool
+
+@onready var direction = 1:
+	set(value):
+		if value == 0: return
+		direction = value
+		sprite.scale.x = direction * scale_factor
+
+@onready var state_machine = $States
+@onready var sprite = $Sprite2D
+@onready var sight = $Sight
+@onready var anim = $AnimationTree
+@onready var playback = anim.get(\"parameters/playback\")
+
+@onready var player:CharacterBody2D = get_tree().current_scene.player
+
+func _ready():
+	var room = get_tree().current_scene
+	var randSpawnPoint = [0, 1].pick_random()
+	
+	max_hp += .5 * difficulty_factor
+	atk += .1 * difficulty_factor
+	
+	hp = max_hp
+	
+	position.x = [room.room_size.position.x, room.room_size.end.x][randSpawnPoint]
+	direction = -sign(position.x-room.room_size.size.x/2)
+
+func apply_gravity(): velocity.y += Game.GRAVITY * get_physics_process_delta_time()
+
+func apply_accel(): velocity.x = lerp(velocity.x, spd * direction, .2)
+
+func apply_fric():
+	if abs(velocity.x) < 1: velocity.x = 0
+	velocity.x = lerp(velocity.x, 0, .15)
+
+func lerp_sprite_scale(value:Vector2, weigth=.2): sprite.scale = sprite.scale.lerp(value * scale_factor * sprite.scale.sign(), weigth)
+func set_sprite_scale(value:Vector2): sprite.scale = Vector2(value.x * direction, value.y) * scale_factor
+
+func _process(_delta: float) -> void:
+	var collisions = $Hurtbox.get_overlapping_bodies()
+	
+	if collisions.is_empty(): return
+	
+	var body = collisions[0]
+	if body.name == \"obj_player\" && !body.invincible && !state_machine.state in [\"spawn\", \"hit\", \"dead\"]:
+		state_machine.change_state(\"attack\")
+		body.state_machine.change_state(\"hit\", [position.x, atk, self])
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_edjfn"]
+
+[sub_resource type="RectangleShape2D" id="1"]
+size = Vector2(16, 16)
+
+[sub_resource type="RectangleShape2D" id="7"]
+size = Vector2(16, 16)
+
+[sub_resource type="AnimationNodeAnimation" id="14"]
+animation = &"attack"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_yijd0"]
+animation = &"dead"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_sppt2"]
+animation = &"hit"
+
+[sub_resource type="AnimationNodeAnimation" id="15"]
+animation = &"jump"
+
+[sub_resource type="AnimationNodeAnimation" id="16"]
+animation = &"run"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_o5skq"]
+animation = &"spawn"
+
+[sub_resource type="AnimationNodeAnimation" id="8"]
+animation = &"walk"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="17"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="18"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="19"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="20"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="21"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="22"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="23"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="24"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="25"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="26"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_kmnx4"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_g570f"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_g3olh"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_l2ne7"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_bk5yf"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_q04jr"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_yfty4"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_tygwm"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_utjgg"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_ckt5o"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_v6tky"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_wcdw4"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_hasmo"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_02spc"]
+
+[sub_resource type="AnimationNodeStateMachine" id="9"]
+states/End/position = Vector2(259, 516)
+states/Start/position = Vector2(259, -128)
+states/attack/node = SubResource("14")
+states/attack/position = Vector2(56, 112)
+states/dead/node = SubResource("AnimationNodeAnimation_yijd0")
+states/dead/position = Vector2(259, 417.221)
+states/hit/node = SubResource("AnimationNodeAnimation_sppt2")
+states/hit/position = Vector2(259, 271.221)
+states/jump/node = SubResource("15")
+states/jump/position = Vector2(494, 112)
+states/run/node = SubResource("16")
+states/run/position = Vector2(259, 169)
+states/spawn/node = SubResource("AnimationNodeAnimation_o5skq")
+states/spawn/position = Vector2(259, -32.7787)
+states/walk/node = SubResource("8")
+states/walk/position = Vector2(259, 75)
+transitions = ["walk", "attack", SubResource("17"), "run", "jump", SubResource("18"), "walk", "jump", SubResource("19"), "jump", "walk", SubResource("20"), "walk", "run", SubResource("21"), "jump", "run", SubResource("22"), "run", "walk", SubResource("23"), "run", "attack", SubResource("24"), "attack", "run", SubResource("25"), "attack", "walk", SubResource("26"), "Start", "spawn", SubResource("AnimationNodeStateMachineTransition_kmnx4"), "spawn", "walk", SubResource("AnimationNodeStateMachineTransition_g570f"), "walk", "spawn", SubResource("AnimationNodeStateMachineTransition_g3olh"), "jump", "spawn", SubResource("AnimationNodeStateMachineTransition_l2ne7"), "spawn", "jump", SubResource("AnimationNodeStateMachineTransition_bk5yf"), "spawn", "run", SubResource("AnimationNodeStateMachineTransition_q04jr"), "run", "spawn", SubResource("AnimationNodeStateMachineTransition_yfty4"), "spawn", "attack", SubResource("AnimationNodeStateMachineTransition_tygwm"), "attack", "spawn", SubResource("AnimationNodeStateMachineTransition_utjgg"), "run", "hit", SubResource("AnimationNodeStateMachineTransition_ckt5o"), "hit", "dead", SubResource("AnimationNodeStateMachineTransition_v6tky"), "jump", "hit", SubResource("AnimationNodeStateMachineTransition_wcdw4"), "attack", "hit", SubResource("AnimationNodeStateMachineTransition_hasmo"), "hit", "walk", SubResource("AnimationNodeStateMachineTransition_02spc")]
+graph_offset = Vector2(-336.984, 312.311)
+
+[sub_resource type="Animation" id="11"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("../Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0]
+}
+
+[sub_resource type="Animation" id="27"]
+resource_name = "attack"
+length = 0.45
+step = 0.05
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("../Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.05, 0.2, 0.3),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [12, 13, 14, 15]
+}
+
+[sub_resource type="Animation" id="Animation_uiiy8"]
+resource_name = "dead"
+length = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("../Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [17]
+}
+
+[sub_resource type="Animation" id="Animation_v6gpc"]
+resource_name = "hit"
+length = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("../Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [16]
+}
+
+[sub_resource type="Animation" id="28"]
+resource_name = "jump"
+length = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("../Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [8]
+}
+
+[sub_resource type="Animation" id="12"]
+resource_name = "run"
+length = 0.4
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("../Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [4, 5, 6, 7]
+}
+
+[sub_resource type="Animation" id="34"]
+resource_name = "spawn"
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("../Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0]
+}
+
+[sub_resource type="Animation" id="13"]
+resource_name = "walk"
+length = 0.8
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("../Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4, 0.6),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_3omjf"]
+_data = {
+&"RESET": SubResource("11"),
+&"attack": SubResource("27"),
+&"dead": SubResource("Animation_uiiy8"),
+&"hit": SubResource("Animation_v6gpc"),
+&"jump": SubResource("28"),
+&"run": SubResource("12"),
+&"spawn": SubResource("34"),
+&"walk": SubResource("13")
+}
+
+[sub_resource type="GDScript" id="3"]
+resource_name = "Espinhudo State Machine"
+script/source = "extends StateMachine
+
+func _anim_finished(anim_name):
+	states[state].anim_finished(anim_name)
+"
+
+[sub_resource type="GDScript" id="31"]
+script/source = "extends State
+
+func step(_d):
+	host.velocity.y = 60
+	host.move_and_slide()
+
+func conditions(): if host.is_on_floor(): return [\"wander\"]
+"
+
+[sub_resource type="GDScript" id="4"]
+resource_name = "Espinhudo Wander"
+script/source = "extends State
+
+var tilemap:TileMapLayer
+
+var max_jumpDistance:float
+var jumpDistance:float
+
+var nextWall_found:bool
+var nextWall_tile:Vector2i
+var nextWall_height:int
+
+func enter(_p=[]):
+	host.player = get_tree().current_scene.player
+	
+	host.spd = host.walk_spd
+	max_jumpDistance = host.spd * 2.0 * abs(host.jump_velocity) / Game.GRAVITY - 16
+	tilemap = get_tree().current_scene.tilemap
+
+func step(_d):
+	if host.player:
+		var cast_angle = (host.player.position - host.position).limit_length(host.sight_distance)
+		host.sight.target_position = Vector2(abs(cast_angle.x)*host.direction, cast_angle.y)
+	
+	if host.is_on_floor():
+		host.playback.travel(\"walk\")
+		
+		if !nextWall_found: get_next_wall()
+		else:
+			var local_pos = tilemap.map_to_local(nextWall_tile)
+			
+			if nextWall_height > host.jump_height || !nextWall_height:
+				if host.test_move(host.transform, Vector2(host.direction, 0)): host.direction = -host.direction
+			
+			elif floor(abs(local_pos.x - host.position.x))-16 <= ceil(jumpDistance):
+				host.velocity.y = -sqrt(2 * Game.GRAVITY * (nextWall_height+1))
+			
+			nextWall_found = false
+			nextWall_tile = Vector2i.ZERO
+			nextWall_height = 0
+	
+	else: host.playback.travel(\"jump\")
+	
+	host.apply_accel()
+	host.move_and_slide()
+	
+	host.apply_gravity()
+
+func conditions():
+	if (host.sight.is_colliding() && host.sight.get_collider().name == \"obj_player\" || host.position.distance_to(host.player.position) <= host.sight_distance*.5) && !host.player.invincible: return [\"chase\"]
+
+func get_next_wall():
+	nextWall_found = host.test_move(host.transform, Vector2(max_jumpDistance*host.direction, 0))
+	if !nextWall_found: return
+	
+	var used_cells:Array = tilemap.get_used_cells()
+	var current_position:Vector2i = tilemap.local_to_map(host.position)
+	
+	for x in ceil(max_jumpDistance/16):
+		x += 1
+		x *= host.direction
+		
+		if used_cells.has(Vector2i(current_position.x+x, current_position.y-1)):
+			nextWall_tile.x = current_position.x+x
+			break
+	
+	for y in current_position.y:
+		if !used_cells.has(Vector2i(nextWall_tile.x, current_position.y-y)):
+			nextWall_tile.y = current_position.y-y
+			nextWall_height = (y-1) * tilemap.tile_set.tile_size.y
+			break
+	
+	jumpDistance = calculate_jump_distance(nextWall_height)
+	
+	$Sprite2D.global_position = tilemap.map_to_local(nextWall_tile)
+
+func calculate_jump_distance(height:float) -> float:
+	var total_air_time = 2.0 * sqrt(2 * Game.GRAVITY * (height+1)) / Game.GRAVITY
+	var jump_distance = host.spd * total_air_time
+	return jump_distance
+"
+
+[sub_resource type="GDScript" id="29"]
+resource_name = "Espinhudo Chase"
+script/source = "extends State
+
+var tilemap:TileMapLayer
+
+var max_jumpDistance:float
+var jumpDistance:float
+
+var nextWall_found:bool
+var nextWall_tile:Vector2i
+var nextWall_height:int
+
+func enter(_p=[]):
+	host.spd = host.run_spd
+	
+	max_jumpDistance = host.spd * 2.0 * abs(host.jump_velocity) / Game.GRAVITY - 16
+	tilemap = get_tree().current_scene.tilemap
+
+func step(_d):
+	host.lerp_sprite_scale(Vector2.ONE)
+	host.direction = sign(tilemap.local_to_map(host.player.position).x - tilemap.local_to_map(host.position).x)
+	
+	if host.is_on_floor():
+		host.playback.travel(\"run\")
+		
+		if !nextWall_found: get_next_wall()
+		else:
+			var local_pos = tilemap.map_to_local(nextWall_tile)
+			
+			if nextWall_height > host.jump_height || !nextWall_height:
+				if host.test_move(host.transform, Vector2(host.direction, 0)): host.direction = -host.direction
+			
+			elif floor(abs(local_pos.x - host.position.x)) <= ceil(jumpDistance)-16:
+				host.velocity.y = -sqrt(2 * Game.GRAVITY * (nextWall_height+1))
+			
+			nextWall_found = false
+			nextWall_tile = Vector2i.ZERO
+			nextWall_height = 0
+	
+	else: host.playback.travel(\"jump\")
+	
+	host.apply_accel()
+	host.move_and_slide()
+	
+	host.apply_gravity()
+
+func conditions():
+	if (
+		host.position.distance_to(host.player.position) >= host.sight_distance*1.2 ||
+		host.player.invincible 
+	): return [\"wander\"]
+
+func get_next_wall():
+	nextWall_found = host.test_move(host.transform, Vector2(min(abs(host.player.position.x-host.position.x), max_jumpDistance)*host.direction, 0))
+	if !nextWall_found: return
+	
+	var used_cells:Array = tilemap.get_used_cells()
+	var current_position:Vector2i = tilemap.local_to_map(host.position)
+	
+	for x in ceil(max_jumpDistance/16):
+		x += 1
+		x *= host.direction
+		
+		if used_cells.has(Vector2i(current_position.x+x, current_position.y-1)):
+			nextWall_tile.x = current_position.x+x
+			break
+	
+	for y in current_position.y:
+		if !used_cells.has(Vector2i(nextWall_tile.x, current_position.y-y)):
+			nextWall_tile.y = current_position.y-y
+			nextWall_height = (y-1) * tilemap.tile_set.tile_size.y
+			break
+	
+	jumpDistance = calculate_jump_distance(nextWall_height)
+	
+	$Sprite2D.global_position = tilemap.map_to_local(nextWall_tile)
+
+func calculate_jump_distance(height:float) -> float:
+	var total_air_time = 2.0 * sqrt(2 * Game.GRAVITY * (height+1)) / Game.GRAVITY
+	var jump_distance = host.spd * total_air_time
+	return jump_distance
+"
+
+[sub_resource type="GDScript" id="30"]
+resource_name = "Espinhudo Attack"
+script/source = "extends State
+
+func enter(_p=[]):
+	host.set_sprite_scale(Vector2.ONE)
+	host.velocity.x = 0
+	host.playback.travel(\"attack\")
+
+func step(_d):
+	host.apply_gravity()
+	host.move_and_slide()
+
+func anim_finished(anim_name):
+	if anim_name == \"attack\":
+		state_machine.change_state(\"wander\")
+"
+
+[sub_resource type="GDScript" id="35"]
+script/source = "extends State
+
+var dmgText = preload(\"res://objects/effects/obj_dmgtext.tscn\")
+
+var delay_time = 60
+var delay_counter = delay_time
+
+func enter(p=[]):
+	host.invincible = true
+	host.velocity.x = 0
+	
+	var dmg = p[0]
+	var dmgText_instance = dmgText.instantiate()
+	var dmgText_color = \"\"
+	
+	if Game.weapon == \"axe\": dmg += dmg*(.1*Game.playerHitCount)
+	
+	if host.player.suddenDeath_active: dmg *= 2
+	
+	match p[1]:
+		\"normal\":
+			dmgText_color = \"[color=\\\"#ffaa5e\\\"]\"
+		
+		\"crit\":
+			dmg *= Game.crit_dmg
+			dmgText_color = \"[color=\\\"#ffecd6\\\"]Crítico!\\n\"
+			
+			if Game.weapon == \"sword\":
+				if Game.weaponLevel == 0: dmg *= 1.5
+				elif Game.weaponLevel >= 2: dmg *= 2
+		
+		\"magic\":
+			dmg *= .5
+			dmgText_color = \"[color=\\\"#8fd3ff\\\"]\"
+			
+			if Game.weapon == \"saber\":
+				if Game.weaponLevel == 0: dmg += dmg*(1.2*(Game.mana/Game.mhp))
+				
+				elif Game.weaponLevel >= 2: dmg += dmg*(2.5*(Game.mana/Game.mhp))
+	
+	dmgText_instance.direction = -host.direction
+	dmgText_instance.text = \"[center]\" + dmgText_color + str(dmg).pad_decimals(2)
+	
+	host.add_child(dmgText_instance)
+	
+	host.hp -= dmg
+
+func step(d):
+	delay_counter -= 60*d
+	host.apply_gravity()
+	host.move_and_slide()
+
+func conditions():
+	if host.hp <= 0: return [\"dead\"]
+	else:
+		host.playback.travel(\"hit\")
+		if delay_counter <= 0: return [\"wander\"]
+
+func exit():
+	host.invincible = false
+	delay_counter = delay_time
+"
+
+[sub_resource type="GDScript" id="GDScript_0b0vf"]
+script/source = "extends State
+
+var xp = preload(\"res://objects/effects/obj_xpparticle.tscn\")
+var tw:Tween
+
+func enter(_p=[]):
+	host.z_index = 1
+	host.velocity.x = 0
+	host.playback.travel(\"dead\")
+	
+	tw = create_tween()
+	tw.tween_property(host.sprite, \"modulate:a\", .0, 2.0)
+	tw.play()
+	
+	var xpInst = xp.instantiate()
+	
+	xpInst.global_position = host.global_position if is_instance_valid(host) else Vector2.ZERO
+	xpInst.z_index = 999
+	get_tree().current_scene.add_child(xpInst)
+	
+	await tw.finished
+	
+	host.call_deferred(\"queue_free\")
+
+func step(_d):
+	host.sprite.modulate.a = lerp(host.modulate.a, .0, 0.01)
+	host.apply_gravity()
+	host.move_and_slide()
+"
+
+[node name="obj_enemyEspinhudo" type="CharacterBody2D"]
+collision_layer = 4
+script = SubResource("2")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_edjfn")
+texture = ExtResource("1")
+centered = false
+offset = Vector2(-13, -32)
+hframes = 4
+vframes = 5
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+visible = false
+self_modulate = Color(0, 0.764706, 1, 1)
+position = Vector2(0, -8)
+shape = SubResource("1")
+
+[node name="Sight" type="RayCast2D" parent="."]
+modulate = Color(0.592157, 1, 0.517647, 1)
+position = Vector2(0, -8)
+collision_mask = 3
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(0, -8)
+shape = SubResource("7")
+debug_color = Color(0.999475, 0, 0.111879, 0.42)
+
+[node name="AnimationTree" type="AnimationTree" parent="."]
+root_node = NodePath("../States")
+tree_root = SubResource("9")
+anim_player = NodePath("AnimationPlayer")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="AnimationTree"]
+root_node = NodePath("../../States")
+libraries = {
+"": SubResource("AnimationLibrary_3omjf")
+}
+
+[node name="States" type="Node" parent="."]
+script = SubResource("3")
+
+[node name="spawn" type="Node" parent="States"]
+script = SubResource("31")
+
+[node name="wander" type="Node" parent="States"]
+script = SubResource("4")
+
+[node name="Sprite2D" type="Sprite2D" parent="States/wander"]
+visible = false
+position = Vector2(0, -8)
+scale = Vector2(0.125, 0.125)
+texture = ExtResource("2_iqlmj")
+offset = Vector2(-3.8147e-06, 0)
+
+[node name="chase" type="Node" parent="States"]
+script = SubResource("29")
+
+[node name="Sprite2D" type="Sprite2D" parent="States/chase"]
+visible = false
+position = Vector2(0, -4.76837e-07)
+scale = Vector2(0.125, 0.125)
+texture = ExtResource("2_iqlmj")
+offset = Vector2(0, -64)
+
+[node name="attack" type="Node" parent="States"]
+script = SubResource("30")
+
+[node name="hit" type="Node" parent="States"]
+script = SubResource("35")
+
+[node name="dead" type="Node" parent="States"]
+script = SubResource("GDScript_0b0vf")
+
+[connection signal="animation_finished" from="AnimationTree" to="States" method="_anim_finished"]

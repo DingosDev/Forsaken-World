@@ -1,0 +1,965 @@
+[gd_scene load_steps=70 format=3 uid="uid://iwsnfthi8odl"]
+
+[ext_resource type="Texture2D" uid="uid://dyywl40h4wlis" path="res://sprites/spr_player.png" id="1"]
+[ext_resource type="Texture2D" uid="uid://0txq2lvtgdqq" path="res://sprites/effects/fx_prayinglight.png" id="2"]
+
+[sub_resource type="GDScript" id="1"]
+resource_name = "Player Data"
+script/source = "extends CharacterBody2D
+
+var divineAid_cooldownTime = 1800
+var divineAid_cooldownCounter = divineAid_cooldownTime
+
+var healing_delayTime = 600
+var healing_delayCounter = healing_delayTime
+
+var mana_delayTime = 10
+var mana_delayCounter = mana_delayTime
+
+var chasingP_delayTime = 60
+var chasingP_delayCounter = chasingP_delayTime
+
+var canShoot = false
+var secondChance_used = false
+var suddenDeath_used = false
+var suddenDeath_active = false
+
+@export var spd := 104
+
+@export var jump_height := 32:
+	set(value):
+		jump_height = value
+		jump_velocity = -sqrt(2 * Game.GRAVITY * value)
+var jump_velocity = -sqrt(2 * Game.GRAVITY * jump_height)
+
+@export var scale_factor := 1.0
+
+@export_range(0, 60) var coyoteTime := .1
+var coyoteTime_counter := 0.0
+
+@export_range(0, 60) var jumpBuffer_time := .1
+var jumpBuffer_counter := 0.0
+
+var input = 0
+var direction = 1:
+	set(value):
+		if value == 0: return
+		direction = value
+		sprite.scale.x = direction * scale_factor
+
+var invincible = false
+
+@onready var state_machine = $States
+@onready var sprite = $Sprite2D
+@onready var anim = $AnimationTree
+@onready var light = $PointLight2D
+@onready var playback = anim.get(\"parameters/playback\")
+
+func _ready(): anim.active = true
+
+func _physics_process(delta):
+	input = round(Input.get_axis(\"left\", \"right\"))
+	
+	if is_on_floor(): coyoteTime_counter = coyoteTime
+	else: coyoteTime_counter -= delta
+	
+	if Input.is_action_just_pressed(\"jump\"): jumpBuffer_counter = jumpBuffer_time
+	else: jumpBuffer_counter -= delta
+	
+	if position.y > get_tree().current_scene.room_size.size.y+16:
+		Game.mana = 0
+		Game.hp = 0
+	
+	light.global_position = position
+	
+	
+	
+	if state_machine.state != \"dead\":
+		if Game.chasingProjectile:
+			if !canShoot:
+				chasingP_delayCounter -= 60*delta
+				if chasingP_delayCounter <= 0:
+					canShoot = true
+					chasingP_delayCounter = chasingP_delayTime
+		
+		if Game.divineAid:
+			if !get_tree().current_scene.get_node_or_null(\"obj_friendlySoul\"):
+				divineAid_cooldownCounter -= 60*delta
+				
+				if divineAid_cooldownCounter <= 0 && Game.mana >= Game.mhp*.5:
+					var soul_inst = preload(\"res://objects/obj_friendlySoul.tscn\").instantiate()
+					soul_inst.position = position
+					get_tree().current_scene.add_child(soul_inst)
+					
+					divineAid_cooldownCounter = divineAid_cooldownTime
+			
+			else:
+				Game.mana -= Game.mhp*.001
+				
+				if Game.mana <= 0:
+					get_tree().current_scene.get_node(\"obj_friendlySoul\").queue_free()
+		
+		if Game.naturalHealing:
+			healing_delayCounter -= 60*delta
+			if healing_delayCounter <= 0:
+				Game.hp += Game.mhp*.1
+				healing_delayCounter = healing_delayTime
+		
+		if Game.naturalMana:
+			mana_delayCounter -= 60*delta
+			if mana_delayCounter <= 0:
+				Game.mana += Game.manaRegen
+				mana_delayCounter = mana_delayTime
+	
+	if suddenDeath_active:
+		Game.mana -= Game.mhp*.001
+		
+		if Game.mana <= 0: state_machine.change_state(\"dead\")
+		
+		if Game.hp > 1.0:
+			suddenDeath_active = false
+
+func apply_gravity():
+	velocity.y += Game.GRAVITY * get_physics_process_delta_time() * (2 if velocity.y > 0 else 1)
+
+func apply_accel(amount:float=.2): velocity.x = lerp(velocity.x, spd * input, amount)
+
+func apply_fric():
+	if abs(velocity.x) < 1: velocity.x = 0
+	velocity.x = lerp(velocity.x, 0.0, .15)
+
+func lerp_sprite_scale(value:Vector2, weigth=.2): sprite.scale = sprite.scale.lerp(value * scale_factor * sprite.scale.sign(), weigth)
+func set_sprite_scale(value:Vector2): sprite.scale = Vector2(value.x * direction, value.y) * scale_factor
+"
+
+[sub_resource type="ShaderMaterial" id="61"]
+
+[sub_resource type="RectangleShape2D" id="2"]
+size = Vector2(10, 21)
+
+[sub_resource type="AnimationNodeAnimation" id="63"]
+animation = &"attack01"
+
+[sub_resource type="AnimationNodeAnimation" id="64"]
+animation = &"crouch"
+
+[sub_resource type="AnimationNodeAnimation" id="65"]
+animation = &"dead"
+
+[sub_resource type="AnimationNodeAnimation" id="66"]
+animation = &"hit"
+
+[sub_resource type="AnimationNodeAnimation" id="67"]
+animation = &"idle"
+
+[sub_resource type="AnimationNodeAnimation" id="68"]
+animation = &"jump"
+
+[sub_resource type="AnimationNodeAnimation" id="69"]
+animation = &"pray_continuing"
+
+[sub_resource type="AnimationNodeAnimation" id="70"]
+animation = &"pray_start"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_7jvk1"]
+animation = &"sudden_death"
+
+[sub_resource type="AnimationNodeAnimation" id="71"]
+animation = &"walk"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="72"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="73"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="74"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="75"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="76"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="77"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="78"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="79"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="80"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="81"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="82"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="83"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="84"]
+switch_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="85"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="86"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="87"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="88"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="89"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="90"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="91"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="92"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="93"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="94"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="95"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="96"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="97"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="98"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_2mj78"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_jy45f"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_4adps"]
+
+[sub_resource type="AnimationNodeStateMachine" id="31"]
+states/Start/position = Vector2(-53.344, -956)
+states/attack01/node = SubResource("63")
+states/attack01/position = Vector2(-53.344, -282.4)
+states/crouch/node = SubResource("64")
+states/crouch/position = Vector2(-248.344, -718)
+states/dead/node = SubResource("65")
+states/dead/position = Vector2(-53.344, -13.4)
+states/hit/node = SubResource("66")
+states/hit/position = Vector2(-53.344, -164.4)
+states/idle/node = SubResource("67")
+states/idle/position = Vector2(-53.344, -847)
+states/jump/node = SubResource("68")
+states/jump/position = Vector2(-53.344, -564)
+states/pray/node = SubResource("69")
+states/pray/position = Vector2(127.656, -581)
+states/pray_start/node = SubResource("70")
+states/pray_start/position = Vector2(127.656, -712)
+states/sudden_death/node = SubResource("AnimationNodeAnimation_7jvk1")
+states/sudden_death/position = Vector2(284.82, -832.323)
+states/walk/node = SubResource("71")
+states/walk/position = Vector2(-53.344, -718)
+transitions = ["walk", "idle", SubResource("72"), "idle", "walk", SubResource("73"), "walk", "jump", SubResource("74"), "jump", "idle", SubResource("75"), "idle", "jump", SubResource("76"), "crouch", "idle", SubResource("77"), "idle", "crouch", SubResource("78"), "walk", "crouch", SubResource("79"), "idle", "pray_start", SubResource("80"), "walk", "pray_start", SubResource("81"), "crouch", "pray_start", SubResource("82"), "pray_start", "idle", SubResource("83"), "pray_start", "pray", SubResource("84"), "pray", "idle", SubResource("85"), "jump", "hit", SubResource("86"), "walk", "hit", SubResource("87"), "crouch", "hit", SubResource("88"), "pray_start", "hit", SubResource("89"), "pray", "hit", SubResource("90"), "idle", "hit", SubResource("91"), "hit", "idle", SubResource("92"), "hit", "dead", SubResource("93"), "idle", "attack01", SubResource("94"), "attack01", "idle", SubResource("95"), "jump", "attack01", SubResource("96"), "walk", "attack01", SubResource("97"), "crouch", "attack01", SubResource("98"), "Start", "idle", SubResource("AnimationNodeStateMachineTransition_2mj78"), "idle", "sudden_death", SubResource("AnimationNodeStateMachineTransition_jy45f"), "sudden_death", "idle", SubResource("AnimationNodeStateMachineTransition_4adps")]
+graph_offset = Vector2(-481.18, -1004.32)
+
+[sub_resource type="Animation" id="11"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [1]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Sprite2D:vframes")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [16]
+}
+
+[sub_resource type="Animation" id="62"]
+resource_name = "attack01"
+length = 0.25
+step = 0.01
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.05, 0.1, 0.15, 0.2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 1,
+"values": [54, 55, 56, 57, 58]
+}
+
+[sub_resource type="Animation" id="40"]
+resource_name = "crouch"
+length = 0.4
+step = 0.01
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.01, 0.03),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [78, 79, 80]
+}
+
+[sub_resource type="Animation" id="42"]
+resource_name = "dead"
+length = 2.3
+step = 0.05
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 2.1, 2.2),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50]
+}
+
+[sub_resource type="Animation" id="58"]
+resource_name = "hit"
+length = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [51]
+}
+
+[sub_resource type="Animation" id="12"]
+resource_name = "idle"
+length = 0.8
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4, 0.6),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3]
+}
+
+[sub_resource type="Animation" id="14"]
+resource_name = "jump"
+length = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [12]
+}
+
+[sub_resource type="Animation" id="33"]
+resource_name = "pray_continuing"
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [24, 25]
+}
+
+[sub_resource type="Animation" id="34"]
+resource_name = "pray_start"
+length = 1.2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4, 0.6, 0.8, 1),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [18, 19, 20, 21, 22, 23]
+}
+
+[sub_resource type="Animation" id="Animation_lmxkc"]
+resource_name = "sudden_death"
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.4, 0.533333, 0.666667, 0.8, 0.933333),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [88, 89, 90, 91, 92, 93, 94]
+}
+
+[sub_resource type="Animation" id="13"]
+resource_name = "walk"
+length = 1.2
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3, 0.6, 0.9),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [6, 7, 8, 9]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_j17gy"]
+_data = {
+&"RESET": SubResource("11"),
+&"attack01": SubResource("62"),
+&"crouch": SubResource("40"),
+&"dead": SubResource("42"),
+&"hit": SubResource("58"),
+&"idle": SubResource("12"),
+&"jump": SubResource("14"),
+&"pray_continuing": SubResource("33"),
+&"pray_start": SubResource("34"),
+&"sudden_death": SubResource("Animation_lmxkc"),
+&"walk": SubResource("13")
+}
+
+[sub_resource type="GDScript" id="3"]
+resource_name = "Player States"
+script/source = "extends StateMachine
+
+func __physics_process(_delta):
+	set_physics_process(host.is_physics_processing())
+	if !is_physics_processing(): host.anim.active = false
+
+func _anim_finished(anim_name):
+	states[state].anim_finished(anim_name)
+"
+
+[sub_resource type="GDScript" id="4"]
+resource_name = "Player Idle"
+script/source = "extends State
+
+func enter(_p=[]):
+	host.playback.travel(\"idle\")
+
+func step(_d):
+	host.lerp_sprite_scale(Vector2.ONE)
+	
+	host.direction = host.input
+	
+	host.apply_fric()
+	host.move_and_slide()
+
+func conditions():
+	if !host.is_on_floor(): return [\"fall\"]
+	elif host.jumpBuffer_counter > 0: return [\"jump\"]
+	if Input.is_action_just_pressed(\"attack\"): return [\"attack\"]
+	if Input.is_action_pressed(\"pray\") && !host.invincible: return [\"pray\"]
+	if Input.is_action_pressed(\"down\"): return [\"crouch\"]
+	if host.input != 0 && !host.test_move(host.transform, Vector2(host.input, 0)): return [\"walk\"]
+	return []
+"
+
+[sub_resource type="GDScript" id="5"]
+resource_name = "Player Walk"
+script/source = "extends State
+
+func step(_d):
+	host.playback.travel(\"walk\")
+	host.lerp_sprite_scale(Vector2.ONE)
+	
+	host.direction = host.input
+	
+	host.apply_accel()
+	host.move_and_slide()
+
+func conditions():
+	if !host.is_on_floor(): return [\"fall\"]
+	elif host.jumpBuffer_counter > 0: return [\"jump\"]
+	if Input.is_action_just_pressed(\"attack\"): return [\"attack\"]
+	if Input.is_action_pressed(\"down\"): return [\"crouch\"]
+	if host.input == 0 || host.is_on_wall(): return [\"idle\"]
+	return []
+"
+
+[sub_resource type="GDScript" id="10"]
+resource_name = "Player Crouch"
+script/source = "extends State
+
+var dir = 0
+
+func enter(_p=[]):
+	host.playback.travel(\"crouch\")
+	
+	host.velocity = Vector2.ZERO
+	host.set_sprite_scale(Vector2(1.5, .8))
+	dir = sign(host.sprite.scale.x)
+
+func step(_d):
+	host.lerp_sprite_scale(Vector2.ONE)
+	
+	host.direction = host.input
+	
+	if host.direction != dir:
+		dir = host.input
+		host.direction = dir
+		host.set_sprite_scale(Vector2(.8 * dir, 1.1))
+
+func conditions():
+	if Input.is_action_pressed(\"pray\") && !host.invincible: return [\"pray\"]
+	if Input.is_action_just_pressed(\"attack\"): return [\"attack\"]
+	if !Input.is_action_pressed(\"down\"): return [\"idle\"]
+"
+
+[sub_resource type="GDScript" id="6"]
+resource_name = "Player Jump"
+script/source = "extends State
+
+func enter(_p=[]):
+	host.playback.travel(\"jump\")
+	host.velocity.y = host.jump_velocity
+	host.set_sprite_scale(Vector2(0.5, 1.5))
+
+func step(_d):
+	host.lerp_sprite_scale(Vector2.ONE)
+	host.apply_accel(.05)
+	host.move_and_slide()
+	host.apply_gravity()
+	
+	if !Input.is_action_pressed(\"jump\") && host.velocity.y < 24:
+		host.velocity.y *= .5
+		host.coyoteTime_counter = 0
+
+func conditions():
+	if host.velocity.y > 0: return [\"fall\"]
+	if Input.is_action_just_pressed(\"attack\"): return [\"attack\"]
+"
+
+[sub_resource type="GDScript" id="7"]
+resource_name = "Player Fall"
+script/source = "extends State
+
+var falling_height = 0
+
+func enter(_p=[]):
+	host.playback.travel(\"jump\")
+	host.set_sprite_scale(Vector2.ONE)
+
+func step(_d):
+	falling_height += host.velocity.y
+	
+	host.apply_accel(.05)
+	host.move_and_slide()
+	host.apply_gravity()
+
+func conditions():
+	if Input.is_action_just_pressed(\"attack\"): return [\"attack\"]
+	if Input.is_action_just_pressed(\"jump\") && host.coyoteTime_counter > 0: return [\"jump\"]
+	if owner.is_on_floor(): return [\"idle\"]
+	return []
+
+func exit():
+	var time_to_stop = sqrt(2 * falling_height/Game.GRAVITY)
+	var impact_force = (falling_height/max(time_to_stop, .1)) * get_physics_process_delta_time()/11
+	
+	host.set_sprite_scale(Vector2.ONE + Vector2(0.5, -.5) * min(impact_force, 1.5))
+	
+	falling_height = 0
+"
+
+[sub_resource type="GDScript" id="99"]
+script/source = "extends State
+
+var attackEndQueue = false
+
+func enter(_p=[]):
+	host.playback.travel(\"attack01\")
+	host.direction = host.input
+	
+	host.set_sprite_scale(Vector2.ONE)
+	
+	attackEndQueue = false
+
+func step(_d):
+	host.apply_accel()
+	host.move_and_slide()
+	host.apply_gravity()
+	
+	if !Input.is_action_pressed(\"jump\") && host.velocity.y < 24:
+		host.velocity.y *= .5
+		host.coyoteTime_counter = 0
+	
+	if host.canShoot:
+		var chasingP = preload(\"res://objects/projectiles/obj_chasingProjectile.tscn\").instantiate()
+		
+		chasingP.position = host.position
+		get_tree().current_scene.add_child(chasingP)
+		
+		host.canShoot = false
+
+func conditions():
+	if attackEndQueue: return [\"idle\"]
+
+func anim_finished(anim_name):
+	if anim_name == \"attack01\":
+		attackEndQueue = true
+		
+"
+
+[sub_resource type="GDScript" id="8"]
+resource_name = "Player Hit"
+script/source = "extends State
+
+var flash_shader = preload(\"res://shaders/shd_flash.tres\")
+var flash_factor = -1
+
+var immortality_used = false
+var knockback_active = false
+
+func enter(p=[]):
+	var dmg = p[1]
+	
+	if Game.tanky: dmg *= .5
+	
+	if Game.mana > 0:
+		knockback_active = false
+		
+		var mana_lost = min(dmg, Game.mana)
+		
+		if Game.weapon == \"saber\" && Game.weaponLevel >= 1: mana_lost *= .25
+		
+		Game.mana -= mana_lost
+		dmg -= mana_lost
+	
+	if dmg >= 0:
+		knockback_active = true
+		
+		if Game.weapon == \"axe\" && Game.weaponLevel >= 1: dmg *= .25
+		
+		Game.hp -= dmg
+		Game.playerHitCount += 1
+		
+		host.velocity = Vector2(host.spd * sign(host.position.x - p[0]), host.jump_velocity) * .8
+		host.playback.travel(\"hit\")
+		
+		if Game.hp <= 0 && Game.weapon == \"axe\" && Game.weaponLevel == 2 && !immortality_used:
+			immortality_used = true
+			$Immortality.start()
+			Game.hp = 1
+	
+	host.invincible = true
+	host.direction = -sign(host.position.x - p[0])
+	host.set_sprite_scale(Vector2.ONE)
+	
+	if Game.revenge && Game.mana > 0:
+		p[2].state_machine.change_state(\"hit\", [Game.weaponsData[Game.weapon][Game.weaponLevel][\"base_atk\"]*(Game.atk*.5)*(1/(Game.mana/Game.mhp)), \"magic\"])
+
+func step(_d):
+	host.apply_gravity()
+	host.move_and_slide()
+
+func conditions():
+	if host.suddenDeath_active:
+		start_flashing()
+		return [\"idle\"]
+	
+	if knockback_active:
+		if host.is_on_floor():
+			if Game.hp <= 0: return [\"dead\"]
+			else:
+				start_flashing()
+				return [\"idle\"]
+	
+	elif Game.hp > 0:
+		start_flashing()
+		return [\"idle\"]
+
+func start_flashing():
+	flash_factor = -1
+	host.sprite.material.shader = flash_shader
+	host.sprite.material.set_shader_parameter(\"flash_scale\", 0)
+	
+	if knockback_active: $Invincibility.start(3)
+	else: $Invincibility.start(1)
+	$Flash.start()
+
+func _on_Invincibility_timeout():
+	host.invincible = false
+	host.sprite.material.shader = null
+	$Flash.stop()
+
+func _on_Flash_timeout():
+	flash_factor *= -1
+	host.sprite.material.set_shader_parameter(\"flash_scale\", flash_factor)
+
+func _on_immortality_timeout() -> void:
+	immortality_used = false
+"
+
+[sub_resource type="GDScript" id="9"]
+resource_name = "Player Dead"
+script/source = "extends State
+
+var scene
+var tw
+
+func enter(_p=[]):
+	scene = get_tree().current_scene
+	scene.get_node(\"enemies\").process_mode = Node.PROCESS_MODE_DISABLED
+	
+	host.set_sprite_scale(Vector2.ONE)
+	
+	host.light.enabled = true
+	
+	tw = create_tween()
+	tw.tween_property(scene.parallax_modulate, \"color\", Color.BLACK, 1.0)
+	tw.tween_property(scene.level_modulate, \"color\", Color.BLACK, 1.0)
+	tw.play()
+	
+	if Game.secondChance && !host.secondChance_used:
+		host.secondChance_used = true
+		
+		host.playback.travel(\"hit\")
+		 
+		var tw2 = create_tween()
+		tw2.set_trans(Tween.TRANS_CUBIC)
+		tw2.tween_property(host, \"position:y\", host.position.y-32, 5.0)
+		tw2.play()
+		
+		await tw2.finished
+		
+		host.invincible = true
+		
+		Game.hp = Game.mhp*.3
+		
+		state_machine.change_state(\"idle\")
+		state_machine.states[\"hit\"].start_flashing()
+		
+		get_tree().current_scene.get_node(\"enemies\").process_mode = Node.PROCESS_MODE_INHERIT
+	
+	elif Game.suddenDeath && !host.suddenDeath_used:
+		host.suddenDeath_used = true
+		host.invincible = false
+		host.playback.travel(\"sudden_death\")
+	
+	else:
+		host.playback.travel(\"dead\")
+		host.z_index = 1
+
+func anim_finished(_anim_name):
+	if _anim_name == \"sudden_death\":
+		host.suddenDeath_active = true
+		Game.mana = Game.mhp
+		get_tree().current_scene.get_node(\"enemies\").process_mode = Node.PROCESS_MODE_INHERIT
+		state_machine.change_state(\"idle\")
+	
+	elif _anim_name == \"dead\": get_tree().quit()
+
+func exit():
+	tw.kill()
+	
+	tw = create_tween()
+	
+	tw.tween_property(scene.level_modulate, \"color\", Color.WHITE, .2)
+	tw.parallel()
+	tw.tween_property(scene.parallax_modulate, \"color\", Color.WHITE, .2)
+	tw.chain()
+	tw.tween_callback(func(): host.light.enabled = true)
+	tw.play()
+"
+
+[sub_resource type="GDScript" id="15"]
+resource_name = "Player Pray"
+script/source = "extends State
+
+@onready var tween = create_tween()
+@onready var level_modulate = get_tree().current_scene.level_modulate
+@onready var parallax_modulate = get_tree().current_scene.parallax_modulate
+
+var regen_delay = 1.0
+var t = 1.0
+
+func _ready() -> void: tween.stop()
+
+func enter(_p=[]):
+	host.playback.travel(\"pray\")
+	host.velocity = Vector2.ZERO
+	host.set_sprite_scale(Vector2.ONE)
+	
+	host.light.enabled = true
+	
+	reset_tween()
+	tween.tween_property(level_modulate, \"color\", Color.BLACK, 1.5)
+	tween.set_parallel()
+	tween.tween_property(parallax_modulate, \"color\", Color.BLACK, 1.5)
+	tween.play()
+
+func step(d):
+	regen_delay -= d
+	t += d
+	
+	host.light.color.a = .5 + abs(sin(t))*.5
+	
+	if regen_delay <= 0:
+		Game.mana += Game.manaRegen
+ 
+func conditions():
+	if Input.is_action_just_released(\"pray\"): return [\"idle\"]
+
+func exit():
+	regen_delay = 1.0
+	t = 0
+	
+	host.light.color.a = 1.0
+	
+	reset_tween()
+	tween.tween_property(level_modulate, \"color\", Color.WHITE, .5)
+	tween.set_parallel()
+	tween.tween_property(parallax_modulate, \"color\", Color.WHITE, .5)
+	tween.chain()
+	tween.tween_callback(func(): host.light.enabled = false)
+	tween.play()
+
+func reset_tween():
+	tween.kill()
+	tween = create_tween()
+"
+
+[sub_resource type="GDScript" id="GDScript_0baha"]
+script/source = "extends State
+
+func enter(p=[]):
+	host.playback.travel(\"hit\")
+	host.velocity = Vector2(host.spd * sign(host.position.x - p[0])*.05, p[1])
+	host.direction = -sign(host.position.x - p[0])
+	host.set_sprite_scale(Vector2.ONE)
+
+func step(_d):
+	host.move_and_slide()
+	host.apply_gravity()
+
+func conditions():
+	if host.is_on_floor(): return [\"idle\"]
+"
+
+[node name="obj_player" type="CharacterBody2D"]
+z_index = -1
+collision_layer = 2
+script = SubResource("1")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("61")
+texture = ExtResource("1")
+centered = false
+offset = Vector2(-16, -32)
+hframes = 6
+vframes = 16
+frame = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+visible = false
+self_modulate = Color(0, 0.764706, 1, 1)
+position = Vector2(0, -10.5)
+shape = SubResource("2")
+
+[node name="PointLight2D" type="PointLight2D" parent="."]
+position = Vector2(0, 16)
+enabled = false
+blend_mode = 2
+texture = ExtResource("2")
+offset = Vector2(0, -16)
+
+[node name="AnimationTree" type="AnimationTree" parent="."]
+tree_root = SubResource("31")
+anim_player = NodePath("AnimationPlayer")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="AnimationTree"]
+root_node = NodePath("../..")
+libraries = {
+&"": SubResource("AnimationLibrary_j17gy")
+}
+
+[node name="States" type="Node" parent="."]
+script = SubResource("3")
+
+[node name="idle" type="Node" parent="States"]
+script = SubResource("4")
+
+[node name="walk" type="Node" parent="States"]
+script = SubResource("5")
+
+[node name="crouch" type="Node" parent="States"]
+script = SubResource("10")
+
+[node name="jump" type="Node" parent="States"]
+script = SubResource("6")
+
+[node name="fall" type="Node" parent="States"]
+script = SubResource("7")
+
+[node name="attack" type="Node" parent="States"]
+script = SubResource("99")
+
+[node name="hit" type="Node" parent="States"]
+script = SubResource("8")
+
+[node name="Invincibility" type="Timer" parent="States/hit"]
+wait_time = 2.0
+one_shot = true
+
+[node name="Flash" type="Timer" parent="States/hit"]
+wait_time = 0.25
+
+[node name="Immortality" type="Timer" parent="States/hit"]
+wait_time = 60.0
+one_shot = true
+
+[node name="dead" type="Node" parent="States"]
+script = SubResource("9")
+
+[node name="pray" type="Node" parent="States"]
+script = SubResource("15")
+
+[node name="launched" type="Node" parent="States"]
+script = SubResource("GDScript_0baha")
+
+[connection signal="animation_finished" from="AnimationTree" to="States" method="_anim_finished"]
+[connection signal="timeout" from="States/hit/Invincibility" to="States/hit" method="_on_Invincibility_timeout"]
+[connection signal="timeout" from="States/hit/Flash" to="States/hit" method="_on_Flash_timeout"]
+[connection signal="timeout" from="States/hit/Immortality" to="States/hit" method="_on_immortality_timeout"]

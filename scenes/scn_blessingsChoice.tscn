@@ -1,0 +1,175 @@
+[gd_scene load_steps=6 format=3 uid="uid://buopn5cfu6f76"]
+
+[ext_resource type="Texture2D" uid="uid://cokn3g4l85kic" path="res://sprites/backgrounds/spr_blessingsChoiceBG.png" id="1_7bkhf"]
+[ext_resource type="PackedScene" uid="uid://is0g4mi48brt" path="res://objects/obj_blessings.tscn" id="2_tnmuf"]
+[ext_resource type="Theme" uid="uid://dj5eks0qvkdms" path="res://fonts/thm_default.tres" id="3_wg5w7"]
+
+[sub_resource type="GDScript" id="GDScript_n1di5"]
+script/source = "extends CanvasLayer
+
+var pickedBlessings = [-1, -1, -1]
+
+func _ready() -> void:
+	$Base/RichTextLabel.visible = false
+	$Base/BlessingsContainer.visible = false
+	
+	var tw = get_tree().create_tween()
+	tw.tween_property($Base/bg, \"modulate:a\", 1.0, .5).set_trans(Tween.TRANS_CUBIC)
+	tw.play()
+	
+	await tw.finished
+	
+	get_window().content_scale_size = DisplayServer.window_get_size()
+	
+	$Base/RichTextLabel.visible = true
+	$Base/BlessingsContainer.visible = true
+	
+	$Base/BlessingsContainer.resort()
+	
+	picked_random_blessings()
+	
+	for i in 3:
+		$Base/BlessingsContainer.get_child(i).id = pickedBlessings[i]
+		$Base/BlessingsContainer.get_child(i).play()
+	
+	await $Base/BlessingsContainer/obj_blessings3.tw.finished
+	$Base/BlessingsContainer/obj_blessings.grab_focus()
+
+func picked_random_blessings():
+	var total_weight = 0
+	var available_blessings = Game.blessingsData.duplicate(true)
+	
+	for i in Game.blessingsData:
+		if Game.blessings.has(i):
+			available_blessings.erase(i)
+			continue
+		
+		if i == 0 && Game.wave < 5*(Game.weaponLevel+1):
+			available_blessings.erase(i)
+			continue
+		
+		total_weight += available_blessings[i][\"weight\"]
+	
+	for i in 3:
+		if pickedBlessings[i] != -1: continue
+		
+		var random_value = randf_range(0, total_weight)
+		var cumulative_weight = 0
+		
+		for j in available_blessings:
+			cumulative_weight += available_blessings[j][\"weight\"]
+			if random_value <= cumulative_weight:
+				pickedBlessings[i] = j
+				
+				total_weight -= available_blessings[j][\"weight\"]
+				available_blessings.erase(j)
+				break
+
+func _on_blessings_picked(id: int) -> void:
+	if !Game.blessingsData[id][\"repeatable\"]: Game.blessings.append(id)
+	Game.blessingsData[id][\"function\"].call()
+	
+	get_tree().current_scene.process_mode = Node.PROCESS_MODE_INHERIT
+	get_tree().current_scene.player.state_machine.change_state(\"idle\")
+	
+	get_window().content_scale_size = Vector2(320, 180)
+	queue_free()
+"
+
+[sub_resource type="GDScript" id="GDScript_iqwc8"]
+script/source = "extends Control
+
+func resort():
+	var size_available = get_window().content_scale_size
+	
+	for i in get_child_count():
+		var c:Control = get_child(i)
+		var full_size = size_available.x - (c.size.x+96)*get_child_count()
+		
+		c.position = Vector2(
+			full_size/2 + (c.size.x+96)*i,
+			-c.size.y/2
+		)
+"
+
+[node name="scn_blessingsChoice" type="CanvasLayer"]
+process_mode = 3
+script = SubResource("GDScript_n1di5")
+
+[node name="Base" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="bg" type="TextureRect" parent="Base"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_7bkhf")
+expand_mode = 1
+
+[node name="BlessingsContainer" type="Control" parent="Base"]
+layout_mode = 1
+anchors_preset = 14
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+script = SubResource("GDScript_iqwc8")
+
+[node name="obj_blessings" parent="Base/BlessingsContainer" instance=ExtResource("2_tnmuf")]
+layout_mode = 2
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_right = 190.0
+offset_bottom = 285.0
+focus_neighbor_left = NodePath("../obj_blessings3")
+focus_neighbor_right = NodePath("../obj_blessings2")
+
+[node name="obj_blessings2" parent="Base/BlessingsContainer" instance=ExtResource("2_tnmuf")]
+layout_mode = 2
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_right = 190.0
+offset_bottom = 285.0
+focus_neighbor_left = NodePath("../obj_blessings")
+focus_neighbor_right = NodePath("../obj_blessings3")
+
+[node name="obj_blessings3" parent="Base/BlessingsContainer" instance=ExtResource("2_tnmuf")]
+layout_mode = 2
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_right = 190.0
+offset_bottom = 285.0
+focus_neighbor_left = NodePath("../obj_blessings2")
+focus_neighbor_right = NodePath("../obj_blessings")
+
+[node name="RichTextLabel" type="RichTextLabel" parent="Base"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 52.0
+offset_bottom = 180.0
+grow_horizontal = 2
+theme = ExtResource("3_wg5w7")
+theme_override_font_sizes/normal_font_size = 64
+bbcode_enabled = true
+text = "[center]Escolha Uma Benção para ajudar em seu caminho"
+fit_content = true
+scroll_active = false
+
+[connection signal="picked" from="Base/BlessingsContainer/obj_blessings" to="." method="_on_blessings_picked"]
+[connection signal="picked" from="Base/BlessingsContainer/obj_blessings2" to="." method="_on_blessings_picked"]
+[connection signal="picked" from="Base/BlessingsContainer/obj_blessings3" to="." method="_on_blessings_picked"]

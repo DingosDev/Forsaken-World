@@ -1,0 +1,381 @@
+[gd_scene load_steps=18 format=3 uid="uid://cexgpgfbf8sja"]
+
+[ext_resource type="Script" uid="uid://clge6jlj85tio" path="res://scripts/scr_map.gd" id="1_bj7t4"]
+[ext_resource type="Texture2D" uid="uid://tr7y3l0wwqie" path="res://sprites/maps/spr_forgottenTown2.png" id="2_sw1qt"]
+[ext_resource type="Texture2D" uid="uid://dhs1eo0urut03" path="res://sprites/maps/spr_forgottenTown3.png" id="3_pddew"]
+[ext_resource type="Texture2D" uid="uid://crrvrfugxnmb" path="res://sprites/maps/spr_forgottenTown4.png" id="4_t2fc3"]
+[ext_resource type="Texture2D" uid="uid://f2f64fltgjet" path="res://sprites/maps/spr_forgottenTown.png" id="5_ooswv"]
+[ext_resource type="Texture2D" uid="uid://bsr6nbyj8kyj2" path="res://sprites/backgrounds/spr_forgottentown.png" id="7_niu4v"]
+[ext_resource type="TileSet" uid="uid://bqbunt5r76cua" path="res://tilesets/tl_grass.tres" id="8_tlgi0"]
+[ext_resource type="Texture2D" uid="uid://cokn3g4l85kic" path="res://sprites/backgrounds/spr_blessingsChoiceBG.png" id="9_6q58g"]
+[ext_resource type="PackedScene" uid="uid://ceps57fp4y1s2" path="res://objects/obj_hud.tscn" id="9_o46on"]
+[ext_resource type="Texture2D" uid="uid://cay4fn87ysu0j" path="res://sprites/blessingsScene/spr_blessignsButton.png" id="10_h12gf"]
+[ext_resource type="Theme" uid="uid://dj5eks0qvkdms" path="res://fonts/thm_default.tres" id="11_f1avv"]
+[ext_resource type="Texture2D" uid="uid://c3jggqffjcii2" path="res://sprites/blessingsScene/spr_blessignsButton_selected.png" id="11_hna4l"]
+[ext_resource type="Texture2D" uid="uid://b1pqtscktf43s" path="res://sprites/blessingsScene/spr_icon.png" id="12_vibn2"]
+
+[sub_resource type="GDScript" id="GDScript_gse2g"]
+script/source = "extends CanvasLayer
+
+var weapons = [\"sword\", \"saber\", \"axe\"]
+
+func _ready() -> void:
+	$Base/RichTextLabel.visible = false
+	$Base/BlessingsContainer.visible = false
+	
+	var tw = get_tree().create_tween()
+	tw.tween_property($Base/bg, \"modulate:a\", 1.0, .5).set_trans(Tween.TRANS_CUBIC)
+	tw.play()
+ 	
+	await tw.finished
+	
+	get_window().content_scale_size = DisplayServer.window_get_size()
+	
+	$Base/RichTextLabel.visible = true
+	$Base/BlessingsContainer.visible = true
+	
+	$Base/BlessingsContainer.resort()
+	
+	for i in 3:
+		$Base/BlessingsContainer.get_child(i).id = weapons[i]
+		$Base/BlessingsContainer.get_child(i).play()
+	
+	await $Base/BlessingsContainer/obj_blessings3.tw.finished
+	$Base/BlessingsContainer/obj_blessings.grab_focus()
+
+
+func _on_blessings_picked(id: String) -> void:
+	Game.weapon = id
+	
+	get_tree().current_scene.process_mode = Node.PROCESS_MODE_INHERIT
+	get_tree().current_scene.player.state_machine.change_state(\"idle\")
+	
+	get_window().content_scale_size = Vector2(320, 180)
+	queue_free()
+"
+
+[sub_resource type="GDScript" id="GDScript_5j4oy"]
+script/source = "extends Control
+
+func resort():
+	var size_available = get_window().content_scale_size
+	
+	for i in get_child_count():
+		var c:Control = get_child(i)
+		var full_size = size_available.x - (c.size.x+96)*get_child_count()
+		
+		c.position = Vector2(
+			full_size/2 + (c.size.x+96)*i,
+			-c.size.y/2
+		)
+"
+
+[sub_resource type="GDScript" id="GDScript_kqe51"]
+script/source = "extends TextureButton
+
+signal picked(id: String)
+
+var id = \"\"
+var tw
+
+func play():
+	var atlas = AtlasTexture.new()
+	var weapon_name = \"\"
+	var weapon_icon = 0
+	
+	atlas.atlas = preload(\"res://sprites/blessingsScene/spr_icon.png\")
+	atlas.region = Rect2(Vector2.ZERO, Vector2(128, 128))
+	
+	match id:
+		\"sword\":
+			weapon_name = \"Espada\"
+			weapon_icon = 2048
+		
+		\"saber\":
+			weapon_name = \"Sabre\"
+			weapon_icon = 2176
+		
+		\"axe\":
+			weapon_name = \"Machado\"
+			weapon_icon = 2304
+	
+	atlas.region.position.x = weapon_icon
+	
+	$VBoxContainer/name.text = \"[center]\"+weapon_name
+	$VBoxContainer/desc.text = str(\"[center]Ataque Base: \", Game.weaponsData[id][0][\"base_atk\"], \"\\n\", Game.weaponsData[id][0][\"desc\"])
+	$VBoxContainer/icon.texture = atlas
+	
+	var delay = 0
+	for i in get_parent().get_child_count():
+		if get_parent().get_child(i) == self:
+			delay = i
+			break
+	
+	tw = create_tween()
+	tw.tween_interval(.2*delay)
+	tw.set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(self, \"position:x\", position.x, 1.0)
+	
+	position.x = -190
+	
+	tw.play()
+	
+	await $VBoxContainer/desc.finished
+	$VBoxContainer/desc.get_v_scroll_bar().value = 0
+
+func _on_pressed() -> void:
+	picked.emit(id)
+
+func _on_gui_input(_event: InputEvent) -> void:
+	if get_viewport().gui_get_focus_owner() == self:
+		var input = Input.get_axis(\"ui_up\", \"ui_down\")
+		$VBoxContainer/desc.get_v_scroll_bar().ratio += .05*input
+"
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lcaqv"]
+atlas = ExtResource("12_vibn2")
+region = Rect2(0, 0, 128, 128)
+
+[node name="map_forgottenTown" type="Node2D"]
+process_mode = 4
+y_sort_enabled = true
+script = ExtResource("1_bj7t4")
+room_size = Rect2(0, 0, 320, 180)
+maps = Array[Texture]([ExtResource("2_sw1qt"), ExtResource("3_pddew"), ExtResource("4_t2fc3"), ExtResource("5_ooswv")])
+background = ExtResource("7_niu4v")
+background_size = Vector2(320, 180)
+ground_tile = ExtResource("8_tlgi0")
+
+[node name="enemies" type="Node2D" parent="."]
+show_behind_parent = true
+
+[node name="obj_hud" parent="." instance=ExtResource("9_o46on")]
+
+[node name="scn_blessingsChoice" type="CanvasLayer" parent="."]
+process_mode = 3
+script = SubResource("GDScript_gse2g")
+
+[node name="Base" type="Control" parent="scn_blessingsChoice"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="bg" type="TextureRect" parent="scn_blessingsChoice/Base"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("9_6q58g")
+expand_mode = 1
+
+[node name="BlessingsContainer" type="Control" parent="scn_blessingsChoice/Base"]
+layout_mode = 1
+anchors_preset = 14
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+script = SubResource("GDScript_5j4oy")
+
+[node name="obj_blessings" type="TextureButton" parent="scn_blessingsChoice/Base/BlessingsContainer"]
+layout_mode = 2
+offset_right = 190.0
+offset_bottom = 285.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(190, 152)
+focus_neighbor_left = NodePath("../obj_blessings3")
+focus_neighbor_right = NodePath("../obj_blessings2")
+mouse_filter = 2
+texture_normal = ExtResource("10_h12gf")
+texture_focused = ExtResource("11_hna4l")
+script = SubResource("GDScript_kqe51")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings"]
+clip_contents = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 18.0
+offset_right = -14.0
+offset_bottom = -15.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="icon" type="TextureRect" parent="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings/VBoxContainer"]
+layout_mode = 2
+mouse_filter = 2
+texture = SubResource("AtlasTexture_lcaqv")
+stretch_mode = 5
+
+[node name="name" type="RichTextLabel" parent="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings/VBoxContainer"]
+layout_mode = 2
+mouse_filter = 2
+theme = ExtResource("11_f1avv")
+theme_override_colors/default_color = Color(1, 0.92549, 0.839216, 1)
+theme_override_colors/font_shadow_color = Color(0.0509804, 0.168627, 0.270588, 1)
+bbcode_enabled = true
+text = "[center]Name"
+fit_content = true
+scroll_active = false
+
+[node name="desc" type="RichTextLabel" parent="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme = ExtResource("11_f1avv")
+bbcode_enabled = true
+text = "description description description description description description description description description description description description description description"
+scroll_following = true
+shortcut_keys_enabled = false
+deselect_on_focus_loss_enabled = false
+drag_and_drop_selection_enabled = false
+
+[node name="obj_blessings2" type="TextureButton" parent="scn_blessingsChoice/Base/BlessingsContainer"]
+layout_mode = 2
+offset_right = 190.0
+offset_bottom = 285.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(190, 152)
+focus_neighbor_left = NodePath("../obj_blessings")
+focus_neighbor_right = NodePath("../obj_blessings3")
+mouse_filter = 2
+texture_normal = ExtResource("10_h12gf")
+texture_focused = ExtResource("11_hna4l")
+script = SubResource("GDScript_kqe51")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings2"]
+clip_contents = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 18.0
+offset_right = -14.0
+offset_bottom = -15.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="icon" type="TextureRect" parent="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings2/VBoxContainer"]
+layout_mode = 2
+mouse_filter = 2
+texture = SubResource("AtlasTexture_lcaqv")
+stretch_mode = 5
+
+[node name="name" type="RichTextLabel" parent="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings2/VBoxContainer"]
+layout_mode = 2
+mouse_filter = 2
+theme = ExtResource("11_f1avv")
+theme_override_colors/default_color = Color(1, 0.92549, 0.839216, 1)
+theme_override_colors/font_shadow_color = Color(0.0509804, 0.168627, 0.270588, 1)
+bbcode_enabled = true
+text = "[center]Name"
+fit_content = true
+scroll_active = false
+
+[node name="desc" type="RichTextLabel" parent="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings2/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme = ExtResource("11_f1avv")
+bbcode_enabled = true
+text = "description description description description description description description description description description description description description description"
+scroll_following = true
+shortcut_keys_enabled = false
+deselect_on_focus_loss_enabled = false
+drag_and_drop_selection_enabled = false
+
+[node name="obj_blessings3" type="TextureButton" parent="scn_blessingsChoice/Base/BlessingsContainer"]
+layout_mode = 2
+offset_right = 190.0
+offset_bottom = 285.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(190, 152)
+focus_neighbor_left = NodePath("../obj_blessings2")
+focus_neighbor_right = NodePath("../obj_blessings")
+mouse_filter = 2
+texture_normal = ExtResource("10_h12gf")
+texture_focused = ExtResource("11_hna4l")
+script = SubResource("GDScript_kqe51")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings3"]
+clip_contents = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 18.0
+offset_right = -14.0
+offset_bottom = -15.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="icon" type="TextureRect" parent="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings3/VBoxContainer"]
+layout_mode = 2
+mouse_filter = 2
+texture = SubResource("AtlasTexture_lcaqv")
+stretch_mode = 5
+
+[node name="name" type="RichTextLabel" parent="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings3/VBoxContainer"]
+layout_mode = 2
+mouse_filter = 2
+theme = ExtResource("11_f1avv")
+theme_override_colors/default_color = Color(1, 0.92549, 0.839216, 1)
+theme_override_colors/font_shadow_color = Color(0.0509804, 0.168627, 0.270588, 1)
+bbcode_enabled = true
+text = "[center]Name"
+fit_content = true
+scroll_active = false
+
+[node name="desc" type="RichTextLabel" parent="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings3/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme = ExtResource("11_f1avv")
+bbcode_enabled = true
+text = "description description description description description description description description description description description description description description"
+scroll_following = true
+shortcut_keys_enabled = false
+deselect_on_focus_loss_enabled = false
+drag_and_drop_selection_enabled = false
+
+[node name="RichTextLabel" type="RichTextLabel" parent="scn_blessingsChoice/Base"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 52.0
+offset_bottom = 180.0
+grow_horizontal = 2
+theme = ExtResource("11_f1avv")
+theme_override_font_sizes/normal_font_size = 64
+bbcode_enabled = true
+text = "[center]Escolha Uma Arma para ajudar em seu caminho"
+fit_content = true
+scroll_active = false
+
+[connection signal="gui_input" from="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings" to="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings" method="_on_gui_input"]
+[connection signal="picked" from="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings" to="scn_blessingsChoice" method="_on_blessings_picked"]
+[connection signal="pressed" from="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings" to="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings" method="_on_pressed"]
+[connection signal="gui_input" from="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings2" to="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings2" method="_on_gui_input"]
+[connection signal="picked" from="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings2" to="scn_blessingsChoice" method="_on_blessings_picked"]
+[connection signal="pressed" from="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings2" to="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings2" method="_on_pressed"]
+[connection signal="gui_input" from="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings3" to="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings3" method="_on_gui_input"]
+[connection signal="picked" from="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings3" to="scn_blessingsChoice" method="_on_blessings_picked"]
+[connection signal="pressed" from="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings3" to="scn_blessingsChoice/Base/BlessingsContainer/obj_blessings3" method="_on_pressed"]

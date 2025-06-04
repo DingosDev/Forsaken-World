@@ -1,0 +1,37 @@
+[gd_scene load_steps=2 format=3 uid="uid://uxobuvbfnayp"]
+
+[sub_resource type="GDScript" id="1"]
+script/source = "extends CanvasLayer
+
+signal finishedIn
+
+func _ready():
+	for i in get_children():
+		if i is ColorRect:
+			i.color.a = 0
+
+func transition(type:int):
+	var tw = create_tween()
+	
+	match type:
+		0:
+			tw.tween_property($Fade, \"color:a\", 1.0, .5)
+			tw.play()
+			await tw.finished
+			finishedIn.emit()
+			await Game.SceneChangeCompleted
+			tw.stop()
+			tw.tween_property($Fade, \"color:a\", 0, .5)
+			tw.play()
+"
+
+[node name="Transition" type="CanvasLayer"]
+script = SubResource("1")
+
+[node name="Fade" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0509804, 0.168627, 0.270588, 1)

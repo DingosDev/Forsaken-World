@@ -1,0 +1,54 @@
+[gd_scene load_steps=3 format=3 uid="uid://3cwt7i8qefrl"]
+
+[sub_resource type="GDScript" id="GDScript_ltt54"]
+script/source = "extends Area2D
+
+var target:Node2D
+var direction = Vector2()
+
+func _ready() -> void:
+	for i in get_tree().current_scene.get_node(\"enemies\").get_children():
+		if i.state_machine.state in [\"spawn\", \"hit\", \"dead\"] && i.invincible: continue
+		
+		if !target || i.hp > target.hp: target = i
+		elif i.hp == target.hp:
+			if position.distance_to(i.position) < position.distance_to(target.position): target = i
+	
+	if !target: queue_free()
+
+func _process(delta: float) -> void:
+	if is_instance_valid(target) && target.state_machine.state != \"hit\":
+		look_at(target.position)
+		direction = position.direction_to(target.position)
+	
+	position += direction * 600 * delta
+	
+	if !get_tree().current_scene.room_size.has_point(position): queue_free()
+
+func _on_body_entered(body: Node2D) -> void:
+	if body == target && !target.state_machine.state in [\"spawn\", \"hit\", \"dead\"]:
+		var dmg = (Game.weaponsData[Game.weapon][Game.weaponLevel][\"base_atk\"] * Game.atk)
+		
+		body.state_machine.change_state(\"hit\", [dmg, \"normal\"])
+		
+		queue_free()
+"
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_qpboa"]
+size = Vector2(16, 2)
+
+[node name="obj_chasingProjectile" type="Area2D"]
+collision_layer = 0
+collision_mask = 4
+monitorable = false
+script = SubResource("GDScript_ltt54")
+
+[node name="Line2D" type="Line2D" parent="."]
+points = PackedVector2Array(-8, 0, 8, 0, -8, 0)
+width = 2.0
+default_color = Color(0.815686, 0.505882, 0.34902, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_qpboa")
+
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]

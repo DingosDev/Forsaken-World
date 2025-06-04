@@ -1,0 +1,52 @@
+[gd_resource type="Theme" load_steps=9 format=3 uid="uid://dj5eks0qvkdms"]
+
+[ext_resource type="FontFile" uid="uid://doke5f8c8y26q" path="res://fonts/KiwiSoda.ttf" id="1_hyk4d"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_wywkn"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_tswsh"]
+
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_teati"]
+color = Color(1, 0.92549, 0.839216, 1)
+thickness = 4
+vertical = true
+
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_vrowc"]
+color = Color(1, 0.831373, 0.639216, 1)
+thickness = 4
+vertical = true
+
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_1bojy"]
+color = Color(1, 0.92549, 0.839216, 1)
+thickness = 4
+vertical = true
+
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_qx7wu"]
+color = Color(0.0509804, 0.168627, 0.270588, 1)
+thickness = 2
+vertical = true
+
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_hs3i0"]
+color = Color(0.0509804, 0.168627, 0.270588, 1)
+thickness = 2
+vertical = true
+
+[resource]
+Button/colors/font_color = Color(1, 0.831373, 0.639216, 1)
+Button/colors/font_disabled_color = Color(0.0509804, 0.168627, 0.270588, 1)
+Button/colors/font_focus_color = Color(1, 0.92549, 0.839216, 1)
+Button/colors/font_pressed_color = Color(1, 0.92549, 0.839216, 1)
+Button/fonts/font = ExtResource("1_hyk4d")
+Button/styles/disabled = null
+Button/styles/focus = SubResource("StyleBoxEmpty_wywkn")
+Button/styles/hover = null
+Button/styles/normal = null
+Button/styles/pressed = null
+RichTextLabel/colors/default_color = Color(1, 0.831373, 0.639216, 1)
+RichTextLabel/fonts/normal_font = ExtResource("1_hyk4d")
+RichTextLabel/styles/focus = SubResource("StyleBoxEmpty_tswsh")
+VScrollBar/styles/grabber = SubResource("StyleBoxLine_teati")
+VScrollBar/styles/grabber_highlight = SubResource("StyleBoxLine_vrowc")
+VScrollBar/styles/grabber_pressed = SubResource("StyleBoxLine_1bojy")
+VScrollBar/styles/scroll = SubResource("StyleBoxLine_qx7wu")
+VScrollBar/styles/scroll_focus = SubResource("StyleBoxLine_hs3i0")

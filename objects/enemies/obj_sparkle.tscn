@@ -1,0 +1,423 @@
+[gd_scene load_steps=32 format=3 uid="uid://dirfyv8eueev8"]
+
+[ext_resource type="Texture2D" uid="uid://regonsqn6bkn" path="res://sprites/enemies/spr_sparkle.png" id="1_ukkb5"]
+[ext_resource type="Texture2D" uid="uid://0txq2lvtgdqq" path="res://sprites/effects/fx_prayinglight.png" id="2_06yih"]
+
+[sub_resource type="GDScript" id="GDScript_xgwot"]
+resource_name = "Sparkle Data"
+script/source = "extends CharacterBody2D
+
+@onready var difficulty_factor := pow(Game.wave, 2)
+
+@export var scale_factor:float = 1.0
+
+var dash_spd := 200.0
+var chase_spd := 30.0
+
+var spd := 0
+
+@export var max_hp := 2.0
+@export var atk := 4.0
+
+var hp := .0
+
+var invincible:bool
+
+@onready var direction = 1:
+	set(value):
+		if value == 0: return
+		direction = value
+		sprite.scale.x = direction * scale_factor
+
+@onready var state_machine = $States
+@onready var sprite = $Sprite2D
+@onready var anim = $AnimationTree
+@onready var playback = anim.get(\"parameters/playback\")
+
+var player:CharacterBody2D = null
+
+func _ready() -> void:
+	var room = get_tree().current_scene.room_size
+	
+	modulate.a = 0
+	position.x = randf_range(room.position.x, room.end.x)
+	player = get_tree().current_scene.player
+	
+	max_hp += .1 * difficulty_factor
+	atk += .1 * difficulty_factor
+	
+	hp = max_hp
+
+func _process(_delta: float) -> void:
+	var collisions = $Hurtbox.get_overlapping_bodies()
+	
+	if collisions.is_empty(): return
+	
+	var body = collisions[0]
+	if body.name == \"obj_player\" && !body.invincible && !state_machine.state in [\"spawn\", \"hit\", \"dead\"]:
+		state_machine.change_state(\"attack\")
+		body.state_machine.change_state(\"hit\", [position.x, atk, self])
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_edjfn"]
+
+[sub_resource type="RectangleShape2D" id="1"]
+size = Vector2(16, 16)
+
+[sub_resource type="RectangleShape2D" id="7"]
+size = Vector2(16, 16)
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_qho07"]
+animation = &"attack"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_eu8xm"]
+animation = &"dead"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_1od3r"]
+animation = &"floating"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_puvqc"]
+animation = &"hit"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_bie8a"]
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_6xotv"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_ka5vq"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_qs0e8"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_2is84"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_x06kd"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_xlvao"]
+
+[sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_r1k8o"]
+states/Start/position = Vector2(199, 100)
+states/attack/node = SubResource("AnimationNodeAnimation_qho07")
+states/attack/position = Vector2(503, 100)
+states/dead/node = SubResource("AnimationNodeAnimation_eu8xm")
+states/dead/position = Vector2(624, 208)
+states/floating/node = SubResource("AnimationNodeAnimation_1od3r")
+states/floating/position = Vector2(354, 100)
+states/hit/node = SubResource("AnimationNodeAnimation_puvqc")
+states/hit/position = Vector2(354, 208)
+transitions = ["Start", "floating", SubResource("AnimationNodeStateMachineTransition_bie8a"), "floating", "attack", SubResource("AnimationNodeStateMachineTransition_6xotv"), "attack", "floating", SubResource("AnimationNodeStateMachineTransition_ka5vq"), "floating", "hit", SubResource("AnimationNodeStateMachineTransition_qs0e8"), "hit", "floating", SubResource("AnimationNodeStateMachineTransition_2is84"), "hit", "dead", SubResource("AnimationNodeStateMachineTransition_x06kd"), "dead", "End", SubResource("AnimationNodeStateMachineTransition_xlvao")]
+
+[sub_resource type="Animation" id="Animation_jwxtw"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("../Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0]
+}
+
+[sub_resource type="Animation" id="Animation_deaij"]
+resource_name = "attack"
+length = 0.5
+step = 0.05
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("../Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.05, 0.1, 0.2, 0.3, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [11, 12, 13, 14, 15, 16]
+}
+
+[sub_resource type="Animation" id="Animation_5leas"]
+resource_name = "dead"
+length = 0.55
+step = 0.05
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("../Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43]
+}
+
+[sub_resource type="Animation" id="Animation_04sxf"]
+resource_name = "floating"
+length = 1.9
+loop_mode = 1
+step = 0.05
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("../Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1.05, 1.2, 1.35, 1.5, 1.65, 1.8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1, 0]
+}
+
+[sub_resource type="Animation" id="Animation_qmy14"]
+resource_name = "hit"
+length = 0.1
+step = 0.05
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("../Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.05),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [22, 23]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_0xtdw"]
+_data = {
+&"RESET": SubResource("Animation_jwxtw"),
+&"attack": SubResource("Animation_deaij"),
+&"dead": SubResource("Animation_5leas"),
+&"floating": SubResource("Animation_04sxf"),
+&"hit": SubResource("Animation_qmy14")
+}
+
+[sub_resource type="GDScript" id="GDScript_mj3uu"]
+resource_name = "Sparkle State Machine"
+script/source = "extends StateMachine
+
+func _anim_finished(anim_name):
+	states[state].anim_finished(anim_name)
+"
+
+[sub_resource type="GDScript" id="GDScript_uaqm7"]
+script/source = "extends State
+
+var tw:Tween
+
+func enter(_p=[]):
+	tw = create_tween()
+	tw.set_parallel()
+	tw.tween_property(host, \"position:y\", 30, 1.0)
+	tw.tween_property(host, \"modulate:a\", 1.0, 1.0)
+	tw.play()
+
+func conditions():
+	if !tw.is_running(): return [\"attack\"]
+"
+
+[sub_resource type="GDScript" id="GDScript_4c122"]
+script/source = "extends State
+
+var dash_delayTime = 60
+var dash_delay = dash_delayTime
+
+func enter(_p=[]):
+	host.playback.travel(\"floating\")
+	host.spd = host.chase_spd
+
+func step(d):
+	if host.player.direction != host.direction || host.player.invincible:
+		if host.position.distance_to(host.player.position) < 80: host.position = host.position.move_toward(host.player.position, -(host.spd*.9)*d)
+		
+	else: host.position = host.position.move_toward(host.player.position, host.spd*d)
+	
+	host.direction = sign(host.player.position.x - host.position.x)
+	
+	if host.player.state_machine.state == \"pray\": dash_delay -= 60*d
+	else: dash_delay = dash_delayTime
+
+func conditions():
+	if dash_delay <= 0 || host.player.state_machine.state == \"launched\": return [\"dash\"]
+
+func exit():
+	dash_delay = dash_delayTime
+"
+
+[sub_resource type="GDScript" id="GDScript_bfumx"]
+script/source = "extends State
+
+func enter(_p=[]):
+	host.spd = host.dash_spd
+	
+	if host.player.state_machine.state == \"launched\":
+		host.spd *= 5
+
+func step(d):
+	host.position = host.position.move_toward(host.player.position, host.spd*d)
+
+func conditions():
+	if host.player.state_machine.state != \"pray\": return [\"chase\"]
+"
+
+[sub_resource type="GDScript" id="GDScript_wdgn8"]
+script/source = "extends State
+
+func enter(_p=[]):
+	host.playback.travel(\"attack\")
+
+func anim_finished(anim_name):
+	if anim_name == \"attack\":
+		state_machine.change_state(\"chase\")
+"
+
+[sub_resource type="GDScript" id="GDScript_mbyxa"]
+script/source = "extends State
+
+var dmgText = preload(\"res://objects/effects/obj_dmgtext.tscn\")
+
+var delay_time = 60
+var delay_counter = delay_time
+
+func enter(p=[]):
+	host.invincible = true
+	host.velocity.x = 0
+	
+	var dmg = p[0]
+	var dmgText_instance = dmgText.instantiate()
+	var dmgText_color = \"\"
+	
+	if Game.weapon == \"axe\": dmg += dmg*(.1*Game.playerHitCount)
+	
+	if host.player.suddenDeath_active: dmg *= 2
+	
+	match p[1]:
+		\"normal\":
+			dmgText_color = \"[color=\\\"#ffaa5e\\\"]\"
+		
+		\"crit\":
+			dmg *= Game.crit_dmg
+			dmgText_color = \"[color=\\\"#ffecd6\\\"]Crítico!\\n\"
+			
+			if Game.weapon == \"sword\":
+				if Game.weaponLevel == 0: dmg *= 1.5
+				elif Game.weaponLevel >= 2: dmg *= 2
+		
+		\"magic\":
+			dmg *= .5
+			dmgText_color = \"[color=\\\"#8fd3ff\\\"]\"
+			
+			if Game.weapon == \"saber\":
+				if Game.weaponLevel == 0: dmg += dmg*(1.2*(Game.mana/Game.mhp))
+				
+				elif Game.weaponLevel >= 2: dmg += dmg*(2.5*(Game.mana/Game.mhp))
+	
+	dmgText_instance.direction = -host.direction
+	dmgText_instance.text = \"[center]\" + dmgText_color + str(dmg).pad_decimals(2)
+	
+	host.add_child(dmgText_instance)
+	
+	host.hp -= dmg
+
+func step(d): delay_counter -= 60*d
+
+func conditions():
+	if host.hp <= 0: return [\"dead\"]
+	else:
+		host.playback.travel(\"hit\")
+		if delay_counter <= 0: return [\"chase\"]
+
+func exit():
+	host.invincible = false
+	delay_counter = delay_time
+"
+
+[sub_resource type="GDScript" id="GDScript_21fwi"]
+script/source = "extends State
+
+var xp = preload(\"res://objects/effects/obj_xpparticle.tscn\")
+
+func enter(_p=[]):
+	host.playback.travel(\"dead\")
+	
+	var xpInst = xp.instantiate()
+	
+	xpInst.global_position = host.global_position if is_instance_valid(host) else Vector2.ZERO
+	xpInst.amount = 3
+	xpInst.z_index = 999
+	get_tree().current_scene.add_child(xpInst)
+
+func anim_finished(anim_name):
+	if anim_name == \"dead\":
+		host.queue_free()
+"
+
+[node name="obj_enemySparkle" type="CharacterBody2D"]
+z_index = 1
+collision_layer = 4
+script = SubResource("GDScript_xgwot")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_edjfn")
+texture = ExtResource("1_ukkb5")
+centered = false
+offset = Vector2(-16, -16)
+hframes = 11
+vframes = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+self_modulate = Color(0, 0.764706, 1, 1)
+shape = SubResource("1")
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("7")
+debug_color = Color(0.999475, 0, 0.111879, 0.42)
+
+[node name="PointLight2D" type="PointLight2D" parent="."]
+blend_mode = 2
+texture = ExtResource("2_06yih")
+
+[node name="AnimationTree" type="AnimationTree" parent="."]
+root_node = NodePath(".")
+tree_root = SubResource("AnimationNodeStateMachine_r1k8o")
+anim_player = NodePath("AnimationPlayer")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="AnimationTree"]
+libraries = {
+"": SubResource("AnimationLibrary_0xtdw")
+}
+
+[node name="States" type="Node" parent="."]
+script = SubResource("GDScript_mj3uu")
+
+[node name="spawn" type="Node" parent="States"]
+script = SubResource("GDScript_uaqm7")
+
+[node name="chase" type="Node" parent="States"]
+script = SubResource("GDScript_4c122")
+
+[node name="dash" type="Node" parent="States"]
+script = SubResource("GDScript_bfumx")
+
+[node name="attack" type="Node" parent="States"]
+script = SubResource("GDScript_wdgn8")
+
+[node name="hit" type="Node" parent="States"]
+script = SubResource("GDScript_mbyxa")
+
+[node name="dead" type="Node" parent="States"]
+script = SubResource("GDScript_21fwi")
+
+[connection signal="animation_finished" from="AnimationTree" to="States" method="_anim_finished"]

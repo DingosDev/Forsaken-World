@@ -1,0 +1,13 @@
+[gd_resource type="Shader" format=3 uid="uid://cqeln4hat67lu"]
+
+[resource]
+code = "shader_type canvas_item;
+
+uniform vec4 flash_color : source_color = vec4(1.0, 0.83, 0.64, 1.0);
+uniform float flash_scale: hint_range(0.0, 1.0, 0.1) = 0.0;
+
+void fragment() {
+	vec4 c = texture(TEXTURE, UV);
+
+	COLOR = vec4(mix(c.rgb, flash_color.rgb, max(flash_scale, 0)), c.a);
+}"

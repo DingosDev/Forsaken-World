@@ -1,0 +1,121 @@
+[gd_scene load_steps=7 format=3 uid="uid://is0g4mi48brt"]
+
+[ext_resource type="Texture2D" uid="uid://cay4fn87ysu0j" path="res://sprites/blessingsScene/spr_blessignsButton.png" id="1"]
+[ext_resource type="Texture2D" uid="uid://c3jggqffjcii2" path="res://sprites/blessingsScene/spr_blessignsButton_selected.png" id="2_x5jao"]
+[ext_resource type="Texture2D" uid="uid://b1pqtscktf43s" path="res://sprites/blessingsScene/spr_icon.png" id="3_qol3i"]
+[ext_resource type="Theme" uid="uid://dj5eks0qvkdms" path="res://fonts/thm_default.tres" id="4_643fh"]
+
+[sub_resource type="GDScript" id="1"]
+script/source = "extends TextureButton
+
+signal picked(id: int)
+
+var id = 0
+var tw
+
+func play():
+	var atlas = AtlasTexture.new()
+	
+	atlas.atlas = preload(\"res://sprites/blessingsScene/spr_icon.png\")
+	atlas.region = Rect2(Vector2.ZERO, Vector2(128, 128))
+	
+	$VBoxContainer/name.text = \"[center]\" + Game.blessingsData[id][\"name\"]
+	
+	if id == 0:
+		atlas.region.position.x = 2048 + 128 * Game.weaponsData.keys().find(Game.weapon)
+		$VBoxContainer/desc.text = str(\"[center]Ataque Base: \", Game.weaponsData[Game.weapon][Game.weaponLevel+1][\"base_atk\"], \"\\n\", Game.weaponsData[Game.weapon][Game.weaponLevel+1][\"desc\"])
+	
+	else:
+		atlas.region.position.x = 128 * Game.blessingsData[id][\"texture_index\"]
+		$VBoxContainer/desc.text = \"[center]\" + Game.blessingsData[id][\"desc\"]
+	
+	$VBoxContainer/icon.texture = atlas
+	
+	var delay = 0
+	for i in get_parent().get_child_count():
+		if get_parent().get_child(i) == self:
+			delay = i
+			break
+	
+	tw = create_tween()
+	tw.tween_interval(.2*delay)
+	tw.set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(self, \"position:x\", position.x, 1.0)
+	
+	position.x = -190
+	
+	tw.play()
+	
+	await $VBoxContainer/desc.finished
+	$VBoxContainer/desc.get_v_scroll_bar().ratio = 0
+
+func _on_pressed() -> void:
+	picked.emit(id)
+
+func _on_gui_input(_event: InputEvent) -> void:
+	if get_viewport().gui_get_focus_owner() == self:
+		var input = Input.get_axis(\"ui_up\", \"ui_down\")
+		$VBoxContainer/desc.get_v_scroll_bar().ratio += .05*input
+"
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lcaqv"]
+atlas = ExtResource("3_qol3i")
+region = Rect2(0, 0, 128, 128)
+
+[node name="obj_blessings" type="TextureButton"]
+anchors_preset = -1
+anchor_right = 0.594
+anchor_bottom = 1.583
+offset_right = -0.0800171
+offset_bottom = 0.0599976
+pivot_offset = Vector2(190, 152)
+mouse_filter = 2
+texture_normal = ExtResource("1")
+texture_focused = ExtResource("2_x5jao")
+script = SubResource("1")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+clip_contents = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 18.0
+offset_right = -14.0
+offset_bottom = -15.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="icon" type="TextureRect" parent="VBoxContainer"]
+layout_mode = 2
+mouse_filter = 2
+texture = SubResource("AtlasTexture_lcaqv")
+stretch_mode = 5
+
+[node name="name" type="RichTextLabel" parent="VBoxContainer"]
+layout_mode = 2
+mouse_filter = 2
+theme = ExtResource("4_643fh")
+theme_override_colors/default_color = Color(1, 0.92549, 0.839216, 1)
+theme_override_colors/font_shadow_color = Color(0.0509804, 0.168627, 0.270588, 1)
+bbcode_enabled = true
+text = "[center]Name"
+fit_content = true
+scroll_active = false
+
+[node name="desc" type="RichTextLabel" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme = ExtResource("4_643fh")
+bbcode_enabled = true
+text = "description description description description description description description description description description description description description description"
+scroll_following = true
+shortcut_keys_enabled = false
+deselect_on_focus_loss_enabled = false
+drag_and_drop_selection_enabled = false
+
+[connection signal="gui_input" from="." to="." method="_on_gui_input"]
+[connection signal="pressed" from="." to="." method="_on_pressed"]

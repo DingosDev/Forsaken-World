@@ -1,0 +1,29 @@
+[gd_scene load_steps=2 format=3 uid="uid://k83xv63fma6o"]
+
+[sub_resource type="GDScript" id="1"]
+script/source = "extends Camera2D
+
+var topLeft_position := Vector2.ZERO
+
+var target_node = null
+var target_position = Vector2.ZERO
+
+func _ready():
+	var room_size = get_tree().current_scene.room_size
+	
+	limit_top = room_size.position.y
+	limit_left = room_size.position.x
+	limit_bottom = room_size.size.y
+	limit_right = room_size.size.x
+
+func _physics_process(_delta):
+	if target_node:
+		target_position = target_node.position
+	
+	position = target_position
+	topLeft_position = get_screen_center_position() - get_viewport_rect().size/2
+"
+
+[node name="obj_camera" type="Camera2D"]
+position_smoothing_speed = 6.0
+script = SubResource("1")

@@ -6,3 +6,4 @@ Criado usando a [Godot Engine](https:://godotengine.org).
 
 ## Sobre
 
+Um jogo plataforma estilo Rougue-Like onde você é a última esperança de trazer um descanço para esse mundo.

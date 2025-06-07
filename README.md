@@ -24,6 +24,7 @@ Ao subir de nível derrotando os monstros você terá a chance de escolher uma e
 ## Como Rodar
 
 1. Instale a [Godot Engine](https://godotengine.ord/download)
-2. Baixe ou clone este repositório: ```bash git clone https://github.com/GabrielGames-Bytes/Forsaken-World.git
-3. Abra o projeto com a Godot
-4. Clique em "Run" ou pressione a tecla F5
+2. Baixe ou clone este repositório:
+   ```bash git clone https://github.com/GabrielGames-Bytes/Forsaken-World.git
+4. Abra o projeto com a Godot
+5. Clique em "Run" ou pressione a tecla F5
